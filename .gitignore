@@ -1,4 +1,2 @@
 nlohmann/
 build/
-jwtRS256.key
-jwtRS256.key.pub
