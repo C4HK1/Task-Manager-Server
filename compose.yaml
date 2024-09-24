@@ -8,3 +8,9 @@ services:
       - 'MYSQL_USER=myuser'
     ports:
       - '3306:3306'
+  boost-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - '8080:8080'

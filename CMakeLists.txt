@@ -4,7 +4,8 @@ project(RestfulApi)
 set(CMAKE_CXX_STANDARD 17)
 
 find_package(Boost REQUIRED COMPONENTS system filesystem)
-find_package(cpp-jwt REQUIRED)
+# find_package(cpp-jwt REQUIRED)
+add_subdirectory(cpp-jwt)
 
 include_directories(${Boost_INCLUDE_DIRS})
 
