@@ -114,7 +114,6 @@ void http_connection::post_request_handler()
     {
         std::string login = authorizetion_data.at("login");
         std::string password = authorizetion_data.at("password");
-
         beast::ostream(response_.body()) << R"%({"JWT": ")%" + (data_base.login_in_profile(login, password) ? jwt.create_jwt(login, password, 60 * 60 * 24 * 7) : "") + R"%("})%";
     }
     else

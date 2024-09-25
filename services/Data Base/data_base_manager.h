@@ -17,6 +17,7 @@
 #include <jwt/jwt.hpp>
 #include <boost/format.hpp>
 #include <boost/mysql/tcp_ssl.hpp>
+#include <stdlib.h>
 
 class data_base_manager
 {
@@ -27,7 +28,7 @@ class data_base_manager
     boost::mysql::results result;
     boost::mysql::execution_state state;
 public:
-    data_base_manager(const std::string &host = "0.0.0.0", const std::string &port = boost::mysql::default_port_string, const std::string &username = "myuser", const std::string &password = "secret", const std::string &db = "mydatabase");
+    data_base_manager(const std::string &host = getenv("DATA_BASE_HOST"), const std::string &port = boost::mysql::default_port_string, const std::string &username = "myuser", const std::string &password = "secret", const std::string &db = "mydatabase");
     ~data_base_manager();
 
     auto login_in_profile(const std::string &login, const std::string &password) -> bool;

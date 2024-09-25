@@ -2,10 +2,11 @@ cmake_minimum_required(VERSION 3.10)
 project(RestfulApi)
 
 set(CMAKE_CXX_STANDARD 17)
+set(MYCOMPILE_FLAGS)
 
 find_package(Boost REQUIRED COMPONENTS system filesystem)
 # find_package(cpp-jwt REQUIRED)
-add_subdirectory(cpp-jwt)
+add_subdirectory(./cpp-jwt)
 
 include_directories(${Boost_INCLUDE_DIRS})
 
@@ -21,4 +22,4 @@ add_executable(RestfulApi
     "services/Data Base/data_base_manager.cpp"    
 )
 
-target_link_libraries(RestfulApi ${Boost_LIBRARIES} cpp-jwt::cpp-jwt)
+target_link_libraries(RestfulApi ${MYCOMPILE_FLAGS} ${Boost_LIBRARIES} cpp-jwt::cpp-jwt)

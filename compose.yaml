@@ -9,6 +9,8 @@ services:
     ports:
       - '3306:3306'
   boost-server:
+    environment:
+      - DATA_BASE_HOST=mysql
     build:
       context: .
       dockerfile: Dockerfile
