@@ -1,6 +1,7 @@
 #include <boost/beast/core/string_type.hpp>
 #include <boost/beast/http/verb.hpp>
 #include <cstddef>
+#include <jwt/jwt.hpp>
 #include <nlohmann/json.hpp>
 #include <nlohmann/json_fwd.hpp>
 #include <string>
@@ -72,15 +73,23 @@ void http_connection::process_request()
 // Construct a response message based on the program state.
 void http_connection::get_request_handler()
 {
+    data_base_manager data_base;
+    auto userData = jwt.validate_jwt_token(request_).payload().create_json_obj();
+
     if(request_.target().find("/") == 0)
     {
-        auto userData = jwt.validate_jwt_token(request_);
-
-        if (!userData.payload().create_json_obj().empty() && std::atoi(std::string(userData.payload().create_json_obj().at("destroy_time")).c_str()) > time(NULL)) {
+        if (!userData.empty() && std::atoi(std::string(userData.at("destroy_time")).c_str()) > time(NULL)) {
             beast::ostream(response_.body()) << R"%({"authorizetion info": "true"})%";
         } else {
             beast::ostream(response_.body()) << R"%({"authorizetion info": "false"})%";
         } 
+    }
+    else if (request_.target().find("/ProfileDeleting") == 0)
+    {
+        std::string login = userData.at("login");
+        std::string password = userData.at("password");
+
+        data_base.delete_profile(login, password);
     }
     else
     {
@@ -102,13 +111,6 @@ void http_connection::post_request_handler()
         std::string password = authorizetion_data.at("password");
 
         beast::ostream(response_.body()) << R"%({"JWT": ")%" + (data_base.create_profile(login, password) ? jwt.create_jwt(login, password, 60 * 60 * 24 * 7) : "") + R"%("})%";
-    }
-    else if (request_.target().find("/ProfileDeleting") == 0)
-    {
-        std::string login = authorizetion_data.at("login");
-        std::string password = authorizetion_data.at("password");
-
-        data_base.create_profile(login, password);
     }
     else if(request_.target().find("/") == 0)
     {
