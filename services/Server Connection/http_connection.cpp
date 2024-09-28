@@ -76,20 +76,22 @@ void http_connection::get_request_handler()
     data_base_manager data_base;
     auto userData = jwt.validate_jwt_token(request_).payload().create_json_obj();
 
-    if(request_.target().find("/") == 0)
+    if (request_.target().find("/ProfileDeleting") == 0)
+    {
+        std::string login = userData.at("login");
+        std::string password = userData.at("password");
+
+        data_base.delete_profile(login, password);
+
+        beast::ostream(response_.body()) << R"%({"profile deleting info": "profile deleted"})%";
+    }
+    else if(request_.target().find("/") == 0)
     {
         if (!userData.empty() && std::atoi(std::string(userData.at("destroy_time")).c_str()) > time(NULL)) {
             beast::ostream(response_.body()) << R"%({"authorizetion info": "true"})%";
         } else {
             beast::ostream(response_.body()) << R"%({"authorizetion info": "false"})%";
         } 
-    }
-    else if (request_.target().find("/ProfileDeleting") == 0)
-    {
-        std::string login = userData.at("login");
-        std::string password = userData.at("password");
-
-        data_base.delete_profile(login, password);
     }
     else
     {
