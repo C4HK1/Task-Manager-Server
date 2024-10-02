@@ -35,32 +35,31 @@ public:
     ~data_base_manager();
 
     //Profile part
-    auto login_in_profile(const std::string &login, const std::string &password) -> bool;
+    auto create_profiles_table() -> void;
     auto create_profile(const std::string &login, const std::string &password) -> bool;
+    auto get_profile_id(const std::string &login, const std::string &password) -> std::string;
     auto delete_profile(const std::string &login, const std::string &password) -> void;
-    
-    //User part
-    auto get_user_id(const std::string &login, const std::string &password) -> uint64_t;
+
+    auto login_in_profile(const std::string &login, const std::string &password) -> bool;
     auto find_users_with_prefix_in_name(const std::string &prefix) -> uint64_t*;
-    auto create_users_table() -> void;
 
     //Room part
-    auto get_room_id(const std::string &creator_id, const std::string &label) -> std::string;
-    auto create_room(const std::string &creator_id, const std::string &label) -> bool;
-    auto append_member_to_room(const std::string &member_id, const std::string &creator_id, const std::string &label) -> bool;
-    auto delete_room(const std::string &creator_id, const std::string &label) -> void;
-    
     auto create_rooms_table() -> void;
     auto create_user_room_table() -> void;
+    auto create_room(const std::string &creator_id, const std::string &label) -> bool;
+    auto get_room_id(const std::string &creator_id, const std::string &label) -> std::string;
+    auto delete_room(const std::string &creator_id, const std::string &label) -> void;
+    
+    auto append_member_to_room(const std::string &member_id, const std::string &creator_id, const std::string &label) -> bool;
 
     //Tasks part
-    auto get_task_id(const std::string &room_id, const std::string &label) -> std::string;
-    auto create_task(const std::string &room_id, const std::string &label) -> bool;
-    auto append_member_to_task(const std::string &member_id, const std::string &task_id) -> bool;
-    auto delete_task(const std::string &creator_id, const std::string &label) -> void;
-    
     auto create_tasks_table() -> void;
     auto create_user_task_table() -> void;
+    auto create_task(const std::string &room_id, const std::string &label) -> bool;
+    auto get_task_id(const std::string &room_id, const std::string &label) -> std::string;
+    auto delete_task(const std::string &creator_id, const std::string &label) -> void;
+
+    auto append_member_to_task(const std::string &member_id, const std::string &task_id) -> bool;
 
     //Data base table management part
     auto print_tabel(const std::string &name) -> void;

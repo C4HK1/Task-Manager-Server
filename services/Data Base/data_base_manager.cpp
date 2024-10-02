@@ -52,20 +52,18 @@ data_base_manager::~data_base_manager()
 
 //Profile part
 
-auto data_base_manager::login_in_profile(const std::string &login, const std::string &password) -> bool
+auto data_base_manager::create_profiles_table() -> void
 {
-    try {
-        conn.start_query("SELECT login, password FROM users WHERE login = '" + login + "' AND password = '" + password + "'", state);
-
-        auto result = conn.read_some_rows(state);
-
-        if (!result.size())
-            return false;
-    } catch(boost::mysql::error_with_diagnostics &exception) {
-        return false;
-    }
-   
-    return true;
+    conn.query(
+        R"%(
+            CREATE TABLE users (
+                ID INT PRIMARY KEY AUTO_INCREMENT NOT NULL UNIQUE,
+                login varchar(50) NOT NULL UNIQUE,
+                password varchar(50) NOT NULL
+            )
+        )%",
+        result
+    );
 }
 
 auto data_base_manager::create_profile(const std::string &login, const std::string &password) -> bool
@@ -85,6 +83,19 @@ auto data_base_manager::create_profile(const std::string &login, const std::stri
     return true;
 }
 
+auto data_base_manager::get_profile_id(const std::string &login, const std::string &password) -> std::string
+{
+    try {
+        conn.start_query("SELECT ID FROM users WHERE login = '" + login + "'AND password = '" + password + "'", state);
+
+        auto result = conn.read_some_rows(state);
+
+        return result.size() ? std::to_string(result.at(0).at(0).get_uint64()) : "0";
+    } catch(boost::mysql::error_with_diagnostics &exception) {
+        return 0;
+    }
+}
+
 auto data_base_manager::delete_profile(const std::string &login, const std::string &password) -> void
 {
     try {
@@ -92,97 +103,23 @@ auto data_base_manager::delete_profile(const std::string &login, const std::stri
     } catch(boost::mysql::error_with_diagnostics &exception) {}
 }
 
-//User part
-
-auto data_base_manager::get_user_id(const std::string &login, const std::string &password) -> uint64_t
+auto data_base_manager::login_in_profile(const std::string &login, const std::string &password) -> bool
 {
     try {
-        conn.start_query("SELECT ID FROM users WHERE login = '" + login + "'AND password = '" + password + "'", state);
+        conn.start_query("SELECT login, password FROM users WHERE login = '" + login + "' AND password = '" + password + "'", state);
 
         auto result = conn.read_some_rows(state);
 
-        return result.size() ? result.at(0).at(0).get_uint64() : 0;
+        if (!result.size())
+            return false;
     } catch(boost::mysql::error_with_diagnostics &exception) {
-        return 0;
+        return false;
     }
-}
-
-auto data_base_manager::create_users_table() -> void
-{
-    conn.query(
-        R"%(
-            CREATE TABLE users (
-                ID INT PRIMARY KEY AUTO_INCREMENT NOT NULL UNIQUE,
-                login varchar(50) NOT NULL UNIQUE,
-                password varchar(50) NOT NULL
-            )
-        )%",
-        result
-    );
+   
+    return true;
 }
 
 //Room part
-
-auto data_base_manager::get_room_id(const std::string &creator_id, const std::string &label) -> std::string
-{
-    try {
-        conn.start_query("SELECT ID FROM rooms WHERE creatorID = '" + creator_id + "' AND label = '" + label + "'", state);
-
-        auto result = conn.read_some_rows(state);
-
-        return result.size() ? std::to_string(result.at(0).at(0).get_int64()) : "0";
-    } catch(boost::mysql::error_with_diagnostics &exception) {
-        return "0";
-    }
-}
-
-auto data_base_manager::create_room(const std::string &creator_id, const std::string &label) -> bool
-{
-    try {
-        conn.start_query("SELECT * FROM rooms WHERE creatorID = '" + creator_id + "' AND label = '" + label + "'", state);
-        
-        if (conn.read_some_rows(state).size())
-            return false; 
-    } catch (boost::mysql::error_with_diagnostics &exception) {}
-
-    conn.query(
-        "INSERT INTO rooms (creatorID, label) VALUES ('" + creator_id + "', '" + label + "')",
-        result
-    );
-
-    conn.query(
-        "INSERT INTO user_room (userID, roomID) VALUES ('" + creator_id + "', '" + this->get_room_id(creator_id, label) + "')",
-        result
-    );
-
-    return true;
-}
-
-auto data_base_manager::append_member_to_room(const std::string &member_id, const std::string &creator_id, const std::string &label) -> bool
-{
-    std::string room_id = this->get_room_id(creator_id, label);
-
-    try {
-        conn.start_query("SELECT * FROM user_room WHERE creatorID = '" + member_id + "' AND label = '" + room_id + "'", state);
-        
-        if (conn.read_some_rows(state).size())
-            return false; 
-    } catch (boost::mysql::error_with_diagnostics &exception) {}
-
-    conn.query(
-        "INSERT INTO user_room (userID, roomID) VALUES ('" + member_id + "', '" + room_id + "')",
-        result
-    );
-
-    return true;
-}
-
-auto data_base_manager::delete_room(const std::string &creator_id, const std::string &label) -> void
-{
-    try {
-        conn.start_query("DELETE FROM rooms WHERE creatorID = '" + creator_id + "'AND label = '" + label + "'", state);
-    } catch(boost::mysql::error_with_diagnostics &exception) {}
-}
 
 auto data_base_manager::create_rooms_table() -> void
 {
@@ -214,36 +151,97 @@ auto data_base_manager::create_user_room_table() -> void
     );
 }
 
-//Room part
+auto data_base_manager::create_room(const std::string &creator_id, const std::string &label) -> bool
+{
+    try {
+        conn.start_query("SELECT * FROM rooms WHERE creatorID = '" + creator_id + "' AND label = '" + label + "'", state);
+        
+        if (conn.read_some_rows(state).size())
+            return false; 
+    } catch (boost::mysql::error_with_diagnostics &exception) {}
 
-auto get_task_id(const std::string &room_id, const std::string &label) -> std::string
+    conn.query(
+        "INSERT INTO rooms (creatorID, label) VALUES ('" + creator_id + "', '" + label + "')",
+        result
+    );
+
+    conn.query(
+        "INSERT INTO user_room (userID, roomID) VALUES ('" + creator_id + "', '" + this->get_room_id(creator_id, label) + "')",
+        result
+    );
+
+    return true;
+}
+
+auto data_base_manager::get_room_id(const std::string &creator_id, const std::string &label) -> std::string
+{
+    try {
+        conn.start_query("SELECT ID FROM rooms WHERE creatorID = '" + creator_id + "' AND label = '" + label + "'", state);
+
+        auto result = conn.read_some_rows(state);
+
+        return result.size() ? std::to_string(result.at(0).at(0).get_int64()) : "0";
+    } catch(boost::mysql::error_with_diagnostics &exception) {
+        return "0";
+    }
+}
+
+auto data_base_manager::delete_room(const std::string &creator_id, const std::string &label) -> void
+{
+    try {
+        conn.start_query("DELETE FROM rooms WHERE creatorID = '" + creator_id + "'AND label = '" + label + "'", state);
+    } catch(boost::mysql::error_with_diagnostics &exception) {}
+}
+
+auto data_base_manager::append_member_to_room(const std::string &member_id, const std::string &creator_id, const std::string &label) -> bool
+{
+    std::string room_id = this->get_room_id(creator_id, label);
+
+    try {
+        conn.start_query("SELECT * FROM user_room WHERE creatorID = '" + member_id + "' AND label = '" + room_id + "'", state);
+        
+        if (conn.read_some_rows(state).size())
+            return false; 
+    } catch (boost::mysql::error_with_diagnostics &exception) {}
+
+    conn.query(
+        "INSERT INTO user_room (userID, roomID) VALUES ('" + member_id + "', '" + room_id + "')",
+        result
+    );
+
+    return true;
+}
+
+//Task part
+
+auto create_rooms_table() -> void
 {
 
 }
 
-auto create_task(const std::string &room_id, const std::string &label) -> bool
+auto create_user_room_table() -> void
 {
 
 }
 
-auto append_member_to_task(const std::string &member_id, const std::string &task_id) -> bool
+auto create_room(const std::string &creator_id, const std::string &label) -> bool
 {
 
 }
 
-auto delete_task(const std::string &creator_id, const std::string &label) -> void
+auto get_room_id(const std::string &creator_id, const std::string &label) -> std::string
 {
 
 }
 
-auto create_tasks_table() -> void
+auto delete_room(const std::string &creator_id, const std::string &label) -> void
 {
 
 }
 
-auto create_user_task_table() -> void
+auto append_member_to_room(const std::string &member_id, const std::string &creator_id, const std::string &label) -> bool
 {
-    
+
 }
 
 //Data base table management part
@@ -275,7 +273,7 @@ auto data_base_manager::update_tables() -> void
     try {
         conn.query("SELECT * FROM users", result);
     } catch (boost::mysql::error_with_diagnostics &exception) {
-        this->create_users_table();
+        this->create_profiles_table();
     }
 
     try {
