@@ -14,9 +14,13 @@ int main() {
     std::cout << "user_room: \n";
     manager.print_tabel("user_room");
 
-    std::cout << manager.create_profile("1", "1") << std::endl;
-    std::cout << manager.create_room("1", "room1") << std::endl;
+    // std::cout << manager.create_profile("1", "1") << std::endl;
+    // std::cout << manager.create_room("1", "room1") << std::endl;
     // manager.create_profile("1", "1");
+    // manager.delete_room("1", "room1");
+    // manager.delete_profile("1", "1");
+    // std::cout << manager.create_profile("2", "1") << std::endl;
+    // std::cout << manager.append_member_to_room("2", "1", "room1");
 
     std::cout << "users: \n";
     manager.print_tabel("users");

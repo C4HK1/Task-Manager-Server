@@ -121,14 +121,6 @@ auto data_base_manager::create_users_table() -> void
     );
 }
 
-auto data_base_manager::delete_room(const std::string &creator_id, const std::string &label) -> void
-{
-    try {
-        conn.start_query("DELETE FROM rooms WHERE creatorID = '" + creator_id + "'AND label = '" + label + "'", state);
-        conn.start_query("DELETE FROM user_room WHERE creatorID = '" + creator_id + "'AND label = '" + label + "'", state);
-    } catch(boost::mysql::error_with_diagnostics &exception) {}
-}
-
 //Room part
 
 auto data_base_manager::get_room_id(const std::string &creator_id, const std::string &label) -> std::string
@@ -166,20 +158,44 @@ auto data_base_manager::create_room(const std::string &creator_id, const std::st
     return true;
 }
 
+auto data_base_manager::append_member_to_room(const std::string &member_id, const std::string &creator_id, const std::string &label) -> bool
+{
+    std::string room_id = this->get_room_id(creator_id, label);
+
+    try {
+        conn.start_query("SELECT * FROM user_room WHERE creatorID = '" + member_id + "' AND label = '" + room_id + "'", state);
+        
+        if (conn.read_some_rows(state).size())
+            return false; 
+    } catch (boost::mysql::error_with_diagnostics &exception) {}
+
+    conn.query(
+        "INSERT INTO user_room (userID, roomID) VALUES ('" + member_id + "', '" + room_id + "')",
+        result
+    );
+
+    return true;
+}
+
+auto data_base_manager::delete_room(const std::string &creator_id, const std::string &label) -> void
+{
+    try {
+        conn.start_query("DELETE FROM rooms WHERE creatorID = '" + creator_id + "'AND label = '" + label + "'", state);
+    } catch(boost::mysql::error_with_diagnostics &exception) {}
+}
+
 auto data_base_manager::create_rooms_table() -> void
 {
     conn.query(
         R"%(
             CREATE TABLE rooms (
                 ID INT PRIMARY KEY AUTO_INCREMENT NOT NULL UNIQUE,
-                creatorID INT NOT NULL,
+                creatorID INT,
                 label varchar(50) NOT NULL
             )
         )%",
         result
     );
-
-    std::cout << "create\n";
 }
 
 auto data_base_manager::create_user_room_table() -> void
@@ -190,12 +206,44 @@ auto data_base_manager::create_user_room_table() -> void
                 userID INT NOT NULL,
                 roomID INT  NOT NULL,
                 PRIMARY KEY (userID , roomID),
-                FOREIGN KEY (userID) REFERENCES users(ID),
-                FOREIGN KEY (roomID) REFERENCES rooms(ID)
+                FOREIGN KEY (userID) REFERENCES users(ID) ON DELETE CASCADE,
+                FOREIGN KEY (roomID) REFERENCES rooms(ID) ON DELETE CASCADE
             )
         )%",
         result
     );
+}
+
+//Room part
+
+auto get_task_id(const std::string &room_id, const std::string &label) -> std::string
+{
+
+}
+
+auto create_task(const std::string &room_id, const std::string &label) -> bool
+{
+
+}
+
+auto append_member_to_task(const std::string &member_id, const std::string &task_id) -> bool
+{
+
+}
+
+auto delete_task(const std::string &creator_id, const std::string &label) -> void
+{
+
+}
+
+auto create_tasks_table() -> void
+{
+
+}
+
+auto create_user_task_table() -> void
+{
+    
 }
 
 //Data base table management part

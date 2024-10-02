@@ -47,12 +47,21 @@ public:
     //Room part
     auto get_room_id(const std::string &creator_id, const std::string &label) -> std::string;
     auto create_room(const std::string &creator_id, const std::string &label) -> bool;
+    auto append_member_to_room(const std::string &member_id, const std::string &creator_id, const std::string &label) -> bool;
     auto delete_room(const std::string &creator_id, const std::string &label) -> void;
-    auto append_member_to_room(const uint64_t member_id, const uint64_t room_id) -> void;
     
     auto create_rooms_table() -> void;
     auto create_user_room_table() -> void;
+
+    //Tasks part
+    auto get_task_id(const std::string &room_id, const std::string &label) -> std::string;
+    auto create_task(const std::string &room_id, const std::string &label) -> bool;
+    auto append_member_to_task(const std::string &member_id, const std::string &task_id) -> bool;
+    auto delete_task(const std::string &creator_id, const std::string &label) -> void;
     
+    auto create_tasks_table() -> void;
+    auto create_user_task_table() -> void;
+
     //Data base table management part
     auto print_tabel(const std::string &name) -> void;
     auto drop_table(const std::string &name) -> void;
