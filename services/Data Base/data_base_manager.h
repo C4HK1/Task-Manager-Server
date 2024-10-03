@@ -38,7 +38,7 @@ public:
     auto delete_profile(const std::string &login, const std::string &password) -> void;
 
     auto login_in_profile(const std::string &login, const std::string &password) -> bool;
-    auto find_users_with_prefix_in_name(const std::string &prefix) -> uint64_t*;
+    auto find_users_with_prefix_in_name(const std::string &prefix) -> std::vector<std::vector<std::string>>;
 
     //Room part
     auto create_rooms_table() -> void;
@@ -54,6 +54,12 @@ public:
     auto create_task(const std::string &room_id, const std::string &label, const std::string &creator_id) -> bool;
     auto get_task_id(const std::string &room_id, const std::string &label) -> std::string;
     auto delete_task(const std::string &room_id, const std::string &label, const std::string &creator_id) -> bool;
+
+    //Join part
+    auto get_user_rooms(const std::string &user_id) -> std::vector<std::vector<std::string>>;
+    auto get_user_tasks(const std::string &user_id) -> std::vector<std::vector<std::string>>;
+    auto get_room_users(const std::string &room_id) -> std::vector<std::vector<std::string>>;
+    auto get_room_tasks(const std::string &room_id) -> std::vector<std::vector<std::string>>;
 
     //Data base table management part
     auto print_tabel(const std::string &name) -> void;

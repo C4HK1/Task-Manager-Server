@@ -113,6 +113,26 @@ auto data_base_manager::login_in_profile(const std::string &login, const std::st
     return true;
 }
 
+auto data_base_manager::find_users_with_prefix_in_name(const std::string &prefix) -> std::vector<std::vector<std::string>>
+{
+    std::vector<std::vector<std::string>> res;
+
+    try
+    {
+        conn.start_query("SELECT * FROM users WHERE login LIKE '" + prefix + "%'", state);
+
+        for (auto i : conn.read_some_rows(state))
+        {
+            res.push_back({i.at(1).get_string(), i.at(2).get_string()});
+        }
+    }
+    catch (boost::mysql::error_with_diagnostics &exception)
+    {
+    }
+
+    return res;
+}
+
 // Room part
 
 auto data_base_manager::create_rooms_table() -> void
@@ -224,7 +244,7 @@ auto data_base_manager::create_tasks_table() -> void
         R"%(
             CREATE TABLE tasks (
                 ID INT PRIMARY KEY AUTO_INCREMENT NOT NULL UNIQUE,
-                roomID INT  NOT NULL,
+                roomID INT NOT NULL,
                 label varchar(50) NOT NULL,
                 creatorID INT,
                 FOREIGN KEY (creatorID) REFERENCES users(ID) ON DELETE SET NULL,
@@ -274,7 +294,7 @@ auto data_base_manager::delete_task(const std::string &room_id, const std::strin
 {
     try
     {
-        conn.start_query("SELECT FROM tasks WHERE roomID = '" + room_id + "'AND label = '" + label + "'AND creatorID = '" + creator_id +"'", state);
+        conn.start_query("SELECT FROM tasks WHERE roomID = '" + room_id + "'AND label = '" + label + "'AND creatorID = '" + creator_id + "'", state);
 
         if (!conn.read_some_rows(state).size())
             return false;
@@ -294,6 +314,92 @@ auto data_base_manager::delete_task(const std::string &room_id, const std::strin
     }
 
     return true;
+}
+
+// Join part
+
+auto data_base_manager::get_user_rooms(const std::string &user_id) -> std::vector<std::vector<std::string>>
+{
+    std::vector<std::vector<std::string>> res;
+
+    try
+    {
+        conn.start_query("SELECT * FROM user_room INNER JOIN rooms ON user_room.roomID = rooms.ID AND user_room.userID = '" + user_id + "'",
+                         state);
+
+        for (auto i : conn.read_some_rows(state))
+        {
+            res.push_back({i.at(4).get_string(), std::to_string(i.at(3).get_int64())});
+        }
+    }
+    catch (boost::mysql::error_with_diagnostics &exception)
+    {
+    }
+
+    return res;
+}
+
+auto data_base_manager::get_user_tasks(const std::string &user_id) -> std::vector<std::vector<std::string>>
+{
+    std::vector<std::vector<std::string>> res;
+
+    try
+    {
+        conn.start_query("SELECT * FROM tasks INNER JOIN (SELECT user_room.roomID FROM user_room INNER JOIN rooms ON user_room.roomID = rooms.ID AND user_room.userID = '" + user_id + "') t2 ON t2.roomID = tasks.roomID",
+                         state);
+
+        for (auto i : conn.read_some_rows(state))
+        {
+            res.push_back({i.at(2).get_string(), std::to_string(i.at(3).get_int64())});
+        }
+    }
+    catch (boost::mysql::error_with_diagnostics &exception)
+    {
+    }
+
+    return res;
+}
+
+auto data_base_manager::get_room_users(const std::string &room_id) -> std::vector<std::vector<std::string>>
+{
+    std::vector<std::vector<std::string>> res;
+
+    try
+    {
+        conn.start_query("SELECT * FROM user_room INNER JOIN users ON user_room.userID = users.ID",
+                         state);
+
+        for (auto i : conn.read_some_rows(state))
+        {
+            res.push_back({i.at(3).get_string(), i.at(4).get_string()});
+        }
+    }
+    catch (boost::mysql::error_with_diagnostics &exception)
+    {
+    }
+
+    return res;
+}
+
+auto data_base_manager::get_room_tasks(const std::string &room_id) -> std::vector<std::vector<std::string>>
+{
+    std::vector<std::vector<std::string>> res;
+
+    try
+    {
+        conn.start_query("SELECT * FROM tasks INNER JOIN rooms ON tasks.roomID = rooms.ID AND rooms.ID = '" + room_id + "'", state);
+
+        for (auto i : conn.read_some_rows(state))
+        {
+            res.push_back({i.at(2).get_string(), std::to_string(i.at(3).get_int64())});
+        }
+    }
+    catch (boost::mysql::error_with_diagnostics &exception)
+    {
+        return std::vector<std::vector<std::string>>();
+    }
+
+    return res;
 }
 
 // Data base table management part
