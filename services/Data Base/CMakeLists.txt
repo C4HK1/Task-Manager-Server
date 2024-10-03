@@ -4,7 +4,7 @@ project(DataBase)
 set(CMAKE_CXX_STANDARD 17)
 
 find_package(Boost REQUIRED COMPONENTS system filesystem)
-add_subdirectory(../../cpp-jwt REQUIRED)
+add_subdirectory(cpp-jwt)
 
 include_directories(${Boost_INCLUDE_DIRS})
 

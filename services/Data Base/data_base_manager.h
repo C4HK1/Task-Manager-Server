@@ -13,9 +13,6 @@
 #include <cstdlib>
 #include <ctime>
 #include <iostream>
-#include <jwt/algorithm.hpp>
-#include <openssl/x509.h>
-#include <jwt/jwt.hpp>
 #include <boost/format.hpp>
 #include <boost/mysql/tcp_ssl.hpp>
 #include <stdlib.h>
@@ -54,12 +51,9 @@ public:
 
     //Tasks part
     auto create_tasks_table() -> void;
-    auto create_user_task_table() -> void;
-    auto create_task(const std::string &room_id, const std::string &label) -> bool;
+    auto create_task(const std::string &room_id, const std::string &label, const std::string &creator_id) -> bool;
     auto get_task_id(const std::string &room_id, const std::string &label) -> std::string;
-    auto delete_task(const std::string &creator_id, const std::string &label) -> void;
-
-    auto append_member_to_task(const std::string &member_id, const std::string &task_id) -> bool;
+    auto delete_task(const std::string &room_id, const std::string &label, const std::string &creator_id) -> bool;
 
     //Data base table management part
     auto print_tabel(const std::string &name) -> void;
