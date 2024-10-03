@@ -2,3 +2,8 @@ nlohmann/
 cpp-jwt/
 build/
 *.a
+test.yaml
+boost-server-deployment.yaml
+boost-server-service.yaml
+mysql-deployment.yaml
+mysql-service.yaml

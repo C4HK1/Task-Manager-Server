@@ -1,7 +1,5 @@
 FROM alpine
 
-ENV DATA_BASE_HOST=mysql
-
 RUN apk update
 
 RUN apk add boost-dev \

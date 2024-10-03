@@ -12,5 +12,7 @@ services:
   #   build:
   #     context: .
   #     dockerfile: Dockerfile
+  # environment:
+  #   - 'DATA_BASE_HOST=mysql'
   #   ports:
   #     - '8080:8080'

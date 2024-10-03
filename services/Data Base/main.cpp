@@ -1,8 +1,6 @@
 #include "data_base_manager.h"
 #include <cinttypes>
 #include <iostream>
-#include <mysql/mysql.h>
-
 
 int main() {  
     data_base_manager manager("0.0.0.0", "3306", "myuser", "secret", "mydatabase");
