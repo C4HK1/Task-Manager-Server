@@ -28,7 +28,7 @@ class data_base_manager
     boost::asio::io_context io_context;
 public:
     //Object part
-    data_base_manager(const std::string &host = getenv("DATA_BASE_HOST"), const std::string &port = boost::mysql::default_port_string, const std::string &username = "myuser", const std::string &password = "secret", const std::string &db = "mydatabase");
+    data_base_manager(const std::string &host = getenv("DATA_BASE_HOST") ? getenv("DATA_BASE_HOST") : "0.0.0.0", const std::string &port = boost::mysql::default_port_string, const std::string &username = "myuser", const std::string &password = "secret", const std::string &db = "mydatabase");
     ~data_base_manager();
 
     //Profile part

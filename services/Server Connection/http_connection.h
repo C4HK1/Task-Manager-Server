@@ -65,6 +65,12 @@ private:
     // Asynchronously transmit the response message.
     void post_request_handler();
 
+    // Asynchronously transmit the response message.
+    void delete_request_handler();
+
+    // Asynchronously transmit the response message.
+    void patch_request_handler();
+
     // Check whether we have spent enough time on this connection.
     void check_deadline();
 };

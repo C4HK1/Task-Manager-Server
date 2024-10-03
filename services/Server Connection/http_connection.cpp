@@ -29,10 +29,10 @@ void http_connection::read_request()
         buffer_,
         request_,
         [self](beast::error_code ec,
-            std::size_t bytes_transferred)
+               std::size_t bytes_transferred)
         {
             boost::ignore_unused(bytes_transferred);
-            if(!ec)
+            if (!ec)
                 self->process_request();
         });
 }
@@ -46,7 +46,7 @@ void http_connection::process_request()
     response_.set(http::field::server, "Beast");
     response_.set(http::field::content_type, "text/plain");
 
-    switch(request_.method())
+    switch (request_.method())
     {
     case http::verb::get:
         get_request_handler();
@@ -54,12 +54,18 @@ void http_connection::process_request()
     case http::verb::post:
         post_request_handler();
         break;
+    case http::verb::delete_:
+        delete_request_handler();
+        break;
+    case http::verb::patch:
+        patch_request_handler();
+        break;
     default:
         // We return responses indicating an error if
         // we do not recognize the request method.
         response_.result(http::status::bad_request);
         response_.set(http::field::content_type, "text/plain");
-        
+
         beast::ostream(response_.body())
             << "Invalid request-method '"
             << std::string(request_.method_string())
@@ -76,22 +82,40 @@ void http_connection::get_request_handler()
     data_base_manager data_base;
     auto userData = jwt.validate_jwt_token(request_).payload().create_json_obj();
 
-    if (request_.target().find("/ProfileDeleting") == 0)
+    if (request_.target().find("/ProfileLogining") == 0)
     {
-        std::string login = userData.at("login");
-        std::string password = userData.at("password");
+        nlohmann::json authorizetion_data = nlohmann::json::parse(beast::buffers_to_string(request_.body().data()));
 
-        data_base.delete_profile(login, password);
-
-        beast::ostream(response_.body()) << R"%({"profile deleting info": "profile deleted"})%";
+        std::string login = authorizetion_data.at("login");
+        std::string password = authorizetion_data.at("password");
+        beast::ostream(response_.body()) << R"%({"JWT": ")%" + (data_base.login_in_profile(login, password) ? jwt.create_jwt(login, password, 60 * 60 * 24 * 7) : "") + R"%("})%";
     }
-    else if(request_.target().find("/") == 0)
+    else if (request_.target().find("/GetUserRooms") == 0)
     {
-        if (!userData.empty() && std::atoi(std::string(userData.at("destroy_time")).c_str()) > time(NULL)) {
+        std::cout << "get user rooms\n";
+    }
+    else if (request_.target().find("/GetUserTasks") == 0)
+    {
+        std::cout << "get user tasks\n";
+    }
+    else if (request_.target().find("/GetRoomTasks") == 0)
+    {
+        std::cout << "get room tasks\n";
+    }
+    else if (request_.target().find("/GetRoomUsers") == 0)
+    {
+        std::cout << "get room users\n";
+    }
+    else if (request_.target().find("/") == 0)
+    {
+        if (!userData.empty() && std::atoi(std::string(userData.at("destroy_time")).c_str()) > time(NULL))
+        {
             beast::ostream(response_.body()) << R"%({"authorizetion info": "true"})%";
-        } else {
+        }
+        else
+        {
             beast::ostream(response_.body()) << R"%({"authorizetion info": "false"})%";
-        } 
+        }
     }
     else
     {
@@ -107,18 +131,20 @@ void http_connection::post_request_handler()
     data_base_manager data_base;
     nlohmann::json authorizetion_data = nlohmann::json::parse(beast::buffers_to_string(request_.body().data()));
 
-    if(request_.target().find("/ProfileCreation") == 0)
+    if (request_.target().find("/ProfileCreation") == 0)
     {
         std::string login = authorizetion_data.at("login");
         std::string password = authorizetion_data.at("password");
 
         beast::ostream(response_.body()) << R"%({"JWT": ")%" + (data_base.create_profile(login, password) ? jwt.create_jwt(login, password, 60 * 60 * 24 * 7) : "") + R"%("})%";
     }
-    else if(request_.target().find("/") == 0)
+    else if (request_.target().find("/RoomCreation") == 0)
     {
-        std::string login = authorizetion_data.at("login");
-        std::string password = authorizetion_data.at("password");
-        beast::ostream(response_.body()) << R"%({"JWT": ")%" + (data_base.login_in_profile(login, password) ? jwt.create_jwt(login, password, 60 * 60 * 24 * 7) : "") + R"%("})%";
+        std::cout << "room creating\n";
+    }
+    else if (request_.target().find("/TaskCreation") == 0)
+    {
+        std::cout << "task creating\n";
     }
     else
     {
@@ -126,6 +152,42 @@ void http_connection::post_request_handler()
         response_.set(http::field::content_type, "text/plain");
         beast::ostream(response_.body()) << "File not found\r\n";
     }
+}
+
+// Construct a response message based on the program state.
+void http_connection::delete_request_handler()
+{
+    data_base_manager data_base;
+    auto userData = jwt.validate_jwt_token(request_).payload().create_json_obj();
+
+    if (request_.target().find("/ProfileDeleting") == 0)
+    {
+        std::string login = userData.at("login");
+        std::string password = userData.at("password");
+
+        data_base.delete_profile(login, password);
+
+        beast::ostream(response_.body()) << R"%({"profile deleting info": "profile deleted"})%";
+    }
+    else if (request_.target().find("/RoomDeleting") == 0)
+    {
+        std::cout << "room deleting\n";
+    }
+    else if (request_.target().find("/TaskDeleting") == 0)
+    {
+        std::cout << "task deleting\n";
+    }
+    else
+    {
+        response_.result(http::status::not_found);
+        response_.set(http::field::content_type, "text/plain");
+        beast::ostream(response_.body()) << "File not found\r\n";
+    }
+}
+
+// Construct a response message based on the program state.
+void http_connection::patch_request_handler()
+{
 }
 
 // Asynchronously transmit the response message.
@@ -153,7 +215,7 @@ void http_connection::check_deadline()
     deadline_.async_wait(
         [self](beast::error_code ec)
         {
-            if(!ec)
+            if (!ec)
             {
                 // Close socket to cancel any outstanding operation.
                 self->socket_.close(ec);
