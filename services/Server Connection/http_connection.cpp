@@ -128,7 +128,7 @@ void http_connection::get_request_handler()
     {
         nlohmann::json request_body_data = nlohmann::json::parse(beast::buffers_to_string(request_.body().data()));
 
-        auto res = data_base.get_room_tasks(data_base.get_room_id(request_body_data.at("creator id"), request_body_data.at("room label")));
+        auto res = data_base.get_room_tasks(data_base.get_room_id(request_body_data.at("room creator id"), request_body_data.at("room label")));
         
         beast::ostream(response_.body()) << R"%({"room tasks": ")%";
         
@@ -147,7 +147,7 @@ void http_connection::get_request_handler()
     {
         nlohmann::json request_body_data = nlohmann::json::parse(beast::buffers_to_string(request_.body().data()));
 
-        auto res = data_base.get_room_users(data_base.get_room_id(request_body_data.at("creator id"), request_body_data.at("room label")));
+        auto res = data_base.get_room_users(data_base.get_room_id(request_body_data.at("room creator id"), request_body_data.at("room label")));
         
         beast::ostream(response_.body()) << R"%({"room users": ")%";
 
@@ -197,15 +197,27 @@ void http_connection::post_request_handler()
     }
     else if (request_.target().find("/RoomCreation") == 0)
     {
-        data_base.create_room(request_header_data.at("creator id"), request_body_data.at("room label"));
+        data_base.create_room(data_base.get_profile_id(request_header_data.at("login"), request_header_data.at("password")), request_body_data.at("room label"));
         
         std::cout << "room creating\n";
     }
     else if (request_.target().find("/TaskCreation") == 0)
     {
-        data_base.create_task(data_base.get_room_id(request_body_data.at("cretor id"), request_body_data.at("room label")), request_body_data.at("task label"), request_body_data.at("cretor id"));
+        data_base.create_task(data_base.get_room_id(request_body_data.at("room creator id"), request_body_data.at("room label")), request_body_data.at("task label"), data_base.get_profile_id(request_header_data.at("login"), request_header_data.at("password")));
 
         std::cout << "task creating\n";
+    }
+    else if (request_.target().find("/RoomDeleting") == 0)
+    {
+        data_base.delete_room(request_body_data.at("room creator id"), request_body_data.at("room label"));
+
+        std::cout << "room deleting\n";
+    }
+    else if (request_.target().find("/TaskDeleting") == 0)
+    {
+        data_base.delete_task(data_base.get_room_id(request_body_data.at("room creator id"), request_body_data.at("room label")), request_body_data.at("task label"), request_body_data.at("task creator id"));
+        
+        std::cout << "task deleting\n";
     }
     else
     {
@@ -220,7 +232,6 @@ void http_connection::delete_request_handler()
 {
     data_base_manager data_base;
     auto request_header_data = jwt.validate_jwt_token(request_).payload().create_json_obj();
-    nlohmann::json request_body_data = nlohmann::json::parse(beast::buffers_to_string(request_.body().data()));
 
     if (request_.target().find("/ProfileDeleting") == 0)
     {
@@ -230,18 +241,6 @@ void http_connection::delete_request_handler()
         data_base.delete_profile(login, password);
 
         beast::ostream(response_.body()) << R"%({"profile deleting info": "profile deleted"})%";
-    }
-    else if (request_.target().find("/RoomDeleting") == 0)
-    {
-        data_base.delete_room(request_body_data.at("creator id"), request_body_data.at("room label"));
-
-        std::cout << "room deleting\n";
-    }
-    else if (request_.target().find("/TaskDeleting") == 0)
-    {
-        data_base.delete_task(data_base.get_room_id(request_body_data.at("creator id"), request_body_data.at("room label")), request_body_data.at("task label"), request_body_data.at("creator id"));
-        
-        std::cout << "task deleting\n";
     }
     else
     {
