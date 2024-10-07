@@ -163,7 +163,7 @@ auto data_base_manager::create_rooms_table() -> void
                 ID INT PRIMARY KEY AUTO_INCREMENT NOT NULL UNIQUE,
                 creatorID INT,
                 label varchar(50) NOT NULL,
-                FOREIGN KEY (creatorID) REFERENCES profiles(ID)
+                FOREIGN KEY (creatorID) REFERENCES profiles(ID) ON DELETE NO ACTION
             )
         )%",
         result);
