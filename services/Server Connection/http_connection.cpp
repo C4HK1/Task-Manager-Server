@@ -1,3 +1,4 @@
+
 #include <boost/beast/core/string_type.hpp>
 #include <boost/beast/http/verb.hpp>
 #include <cstddef>
@@ -146,7 +147,7 @@ void http_connection::get_request_handler()
     }
     else if (request_.target().find("/") == 0)
     {
-        beast::ostream(response_.body()) << R"%({"authorizetion info": ")%" + std::to_string(!request_header_data.empty() && std::atoi(std::string(request_header_data.at("destroy_time")).c_str()) > time(NULL)) + R"%("})%";
+        beast::ostream(response_.body()) << R"%({"authorizetion info": ")%" << std::boolalpha << (!request_header_data.empty() && std::atoi(std::string(request_header_data.at("destroy_time")).c_str()) > time(NULL)) << R"%("})%";
     }
     else
     {

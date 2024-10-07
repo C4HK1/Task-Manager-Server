@@ -109,13 +109,15 @@ auto data_base_manager::delete_profile(const std::string &login, const std::stri
     }
     catch (boost::mysql::error_with_diagnostics &exception)
     {
+        std::cout << exception.get_diagnostics().server_message() << std::endl;
+        std::cout << exception.get_diagnostics().client_message() << std::endl;
     }
 }
 
 auto data_base_manager::login_in_profile(const std::string &login, const std::string &password) -> bool
 {
     try
-    {
+    {      
         conn.start_query("SELECT login, password FROM profiles WHERE login = '" + login + "' AND password = '" + password + "'", state);
 
         auto result = conn.read_some_rows(state);
