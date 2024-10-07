@@ -2,7 +2,6 @@
 #include <jwt/jwt.hpp>
 #include <string>
 #include <time.h>
-#include <iostream>
 
 #include "JWT_manager.h"
 #include "../Text File Parser/text_file_parser.h"
@@ -35,7 +34,7 @@ auto JWT_manager::validate_jwt_token(http::request<http::dynamic_body> request) 
     return result;
 }
 
-auto JWT_manager::create_jwt(std::string &login, std::string &password, uint64_t time_to_live) -> std::string
+auto JWT_manager::create_jwt(const std::string &login, const std::string &password, uint64_t time_to_live) -> std::string
 {
     time_t current_time = time(NULL);
 

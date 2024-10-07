@@ -1,0 +1,17 @@
+#include "room.h"
+#include <nlohmann/json_fwd.hpp>
+
+nlohmann::json room::to_json() const {
+    nlohmann::json tasks;
+
+    for (auto task : this->tasks) {
+        tasks.push_back(task.to_json());
+    }
+
+    return {
+            {"creator_id", this->creator_id},
+            {"creator_name", this->creator_name},
+            {"label", this->label},
+            {"tasks", tasks},
+        };
+}

@@ -18,5 +18,5 @@ public:
     JWT_manager(const std::string  &public_key_path = "../jwtRS256.key.pub", const std::string  &private_key_path = "../jwtRS256.key");
 
     auto validate_jwt_token(http::request<http::dynamic_body> request) -> jwt::jwt_object;
-    auto create_jwt(std::string &login, std::string &password, u_int64_t time_to_live) -> std::string;
+    auto create_jwt(const std::string &login, const std::string &password, u_int64_t time_to_live) -> std::string;
 };

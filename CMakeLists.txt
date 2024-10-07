@@ -12,6 +12,12 @@ include_directories(${Boost_INCLUDE_DIRS})
 
 add_executable(RestfulApi 
     main.cpp
+    models/Room/room.h
+    models/Task/task.h
+    models/Profile/profile.h
+    models/Room/room.cpp
+    models/Task/task.cpp
+    models/Profile/profile.cpp
     services/JWT/JWT_manager.h
     services/JWT/JWT_manager.cpp
     "services/Server Connection/http_connection.h"
