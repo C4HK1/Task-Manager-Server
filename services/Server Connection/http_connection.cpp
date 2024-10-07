@@ -165,10 +165,11 @@ void http_connection::post_request_handler()
 
     if (request_.target().find("/ProfileCreation") == 0)
     {
+        std::string name = request_body_data.at("name");
         std::string login = request_body_data.at("login");
         std::string password = request_body_data.at("password");
 
-        beast::ostream(response_.body()) << R"%({"JWT": ")%" + (data_base.create_profile(login, password) ? jwt.create_jwt(login, password, 60 * 60 * 24 * 7) : "") + R"%("})%";
+        beast::ostream(response_.body()) << R"%({"JWT": ")%" + (data_base.create_profile(name, login, password) ? jwt.create_jwt(login, password, 60 * 60 * 24 * 7) : "") + R"%("})%";
     }
     else if (request_.target().find("/RoomCreation") == 0)
     {

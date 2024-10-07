@@ -38,7 +38,7 @@ public:
 
     //Profile part
     auto create_profiles_table() -> void;
-    auto create_profile(const std::string &login, const std::string &password) -> bool;
+    auto create_profile(const std::string &name, const std::string &login, const std::string &password) -> bool;
     auto get_profile_id(const std::string &login, const std::string &password) -> std::string;
     auto get_profile(const std::string &ID) -> profile;
     auto delete_profile(const std::string &login, const std::string &password) -> void;

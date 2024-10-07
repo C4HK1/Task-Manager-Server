@@ -1,3 +1,4 @@
+#include <iostream>
 #include <string>
 
 #include "data_base_manager.h"
@@ -48,7 +49,7 @@ auto data_base_manager::create_profiles_table() -> void
         result);
 }
 
-auto data_base_manager::create_profile(const std::string &login, const std::string &password) -> bool
+auto data_base_manager::create_profile(const std::string &name, const std::string &login, const std::string &password) -> bool
 {
     try
     {
@@ -62,7 +63,7 @@ auto data_base_manager::create_profile(const std::string &login, const std::stri
     }
 
     conn.query(
-        "INSERT INTO profiles (login, password) VALUES ('" + login + "', '" + password + "')",
+        "INSERT INTO profiles (name, login, password) VALUES ('" + name +  "', '" + login + "', '" + password + "')",
         result);
 
     return true;
@@ -395,7 +396,7 @@ auto data_base_manager::get_room_profiles(const std::string &room_id) -> std::ve
 
         for (auto profile : profiles)
         {
-            res.push_back({profile.at(2).get_string(), profile.at(3).get_string(), {}});
+            res.push_back({std::to_string(profile.at(2).get_uint64()), profile.at(3).get_string(), {}});
         }
     }
     catch (boost::mysql::error_with_diagnostics &exception)
@@ -454,10 +455,14 @@ auto data_base_manager::drop_table(const std::string &name) -> void
 {
     try
     {
+        conn.query("SET FOREIGN_KEY_CHECKS=0", result);
         conn.query("DROP TABLE " + name, result);
+        conn.query("SET FOREIGN_KEY_CHECKS=1;", result);
     }
     catch (boost::mysql::error_with_diagnostics &exception)
     {
+        std::cout << exception.get_diagnostics().server_message() << std::endl;
+        std::cout << exception.get_diagnostics().client_message() << std::endl;
     }
 }
 
