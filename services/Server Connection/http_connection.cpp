@@ -97,23 +97,37 @@ void http_connection::get_request_handler()
     {
         auto rooms = data_base.get_profile_rooms(data_base.get_profile_id(request_header_data.at("login"), request_header_data.at("password")));
         
-        beast::ostream(response_.body()) << R"%({"profile rooms count": ")%" + std::to_string(rooms.size()) +  R"%("})%" + "\n";
-        
-        for (auto room : rooms) {
-            beast::ostream(response_.body()) << room.to_json() << "\n";
+        beast::ostream(response_.body()) << R"%({"profile rooms count": ")%" + std::to_string(rooms.size()) + R"%(",)%" + "\n" +
+            R"%("items": [)%" + "\n";
+
+        for (int i = 0; i < rooms.size(); ++i) {
+            beast::ostream(response_.body()) << rooms[i].to_json();
+
+            if (i != rooms.size() - 1) {
+                beast::ostream(response_.body()) << R"%(,)%" << "\n";
+            }
         }
 
+        beast::ostream(response_.body()) << "\n" << R"%(]})%";
+            
         std::cout << "get profile rooms\n";
     }
     else if (request_.target().find("/GetProfileTasks") == 0)
     {
         auto tasks = data_base.get_profile_tasks(data_base.get_profile_id(request_header_data.at("login"), request_header_data.at("password")));
         
-        beast::ostream(response_.body()) << R"%({"profile tasks count": ")%" + std::to_string(tasks.size()) +  R"%("})%" + "\n";
+        beast::ostream(response_.body()) << R"%({"profile tasks count": ")%" + std::to_string(tasks.size()) + R"%(",)%" + "\n" +
+            R"%("items": [)%" + "\n";
 
-        for (auto task : tasks) {
-            beast::ostream(response_.body()) << task.to_json() << "\n";
+        for (int i = 0; i < tasks.size(); ++i) {
+            beast::ostream(response_.body()) << tasks[i].to_json();
+
+            if (i != tasks.size() - 1) {
+                beast::ostream(response_.body()) << R"%(,)%" << "\n";
+            }
         }
+
+        beast::ostream(response_.body()) << "\n" << R"%(]})%";
 
         std::cout << "get profile tasks\n";
     }
@@ -123,11 +137,18 @@ void http_connection::get_request_handler()
 
         auto tasks = data_base.get_room_tasks(data_base.get_room_id(request_body_data.at("room creator id"), request_body_data.at("room label")));
         
-        beast::ostream(response_.body()) << R"%({"room tasks count": ")%" + std::to_string(tasks.size()) +  R"%("})%" + "\n";
+        beast::ostream(response_.body()) << R"%({"room tasks count": ")%" + std::to_string(tasks.size()) + R"%(",)%" + "\n" +
+            R"%("items": [)%" + "\n";
 
-        for (auto task : tasks) {
-            beast::ostream(response_.body()) << task.to_json() << "\n";
+        for (int i = 0; i < tasks.size(); ++i) {
+            beast::ostream(response_.body()) << tasks[i].to_json();
+
+            if (i != tasks.size() - 1) {
+                beast::ostream(response_.body()) << R"%(,)%" << "\n";
+            }
         }
+
+        beast::ostream(response_.body()) << "\n" << R"%(]})%";
 
         std::cout << "get room tasks\n";
     }
@@ -137,12 +158,19 @@ void http_connection::get_request_handler()
 
         auto profiles = data_base.get_room_profiles(data_base.get_room_id(request_body_data.at("room creator id"), request_body_data.at("room label")));
         
-        beast::ostream(response_.body()) << R"%({"room profiles count": ")%" + std::to_string(profiles.size()) +  R"%("})%" + "\n";
+        beast::ostream(response_.body()) << R"%({"room profiles count": ")%" + std::to_string(profiles.size()) + R"%(",)%" + "\n" +
+            R"%("items": [)%" + "\n";
 
-        for (auto profile : profiles) {
-            beast::ostream(response_.body()) << profile.to_json() << "\n";
+        for (int i = 0; i < profiles.size(); ++i) {
+            beast::ostream(response_.body()) << profiles[i].to_json();
+
+            if (i != profiles.size() - 1) {
+                beast::ostream(response_.body()) << R"%(,)%" << "\n";
+            }
         }
-        
+
+        beast::ostream(response_.body()) << "\n" << R"%(]})%";
+
         std::cout << "get room profiles\n";
     }
     else if (request_.target().find("/") == 0)
