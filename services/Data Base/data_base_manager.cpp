@@ -1,5 +1,9 @@
+#include <algorithm>
+#include <boost/mysql/field_view.hpp>
+#include <boost/mysql/rows_view.hpp>
 #include <iostream>
 #include <string>
+#include <vector>
 
 #include "data_base_manager.h"
 
@@ -224,6 +228,25 @@ auto data_base_manager::get_room_id(const std::string &creator_id, const std::st
     }
 }
 
+auto data_base_manager::get_room(const std::string &creator_id, const std::string &label) -> room
+{
+    try {
+        conn.start_query("SELECT creatorID, label, ID FROM rooms WHERE creatorID = '" + creator_id + "' AND label = '" + label + "'",
+                         state);
+
+        auto room = conn.read_some_rows(state);
+
+        if (room.size() > 0)
+            return {std::to_string(room.at(0).at(0).get_uint64()), this->get_profile(creator_id).name, room.at(0).at(1).get_string(), this->get_room_tasks(std::to_string(room.at(0).at(2).get_uint64()))};
+    } catch (boost::mysql::error_with_diagnostics &exception) {
+        std::cout << exception.get_diagnostics().server_message();
+        std::cout << exception.get_diagnostics().client_message();
+    }
+
+    return {};
+}
+
+
 auto data_base_manager::delete_room(const std::string &creator_id, const std::string &label) -> void
 {
     try
@@ -311,6 +334,23 @@ auto data_base_manager::get_task_id(const std::string &room_id, const std::strin
     }
 }
 
+auto data_base_manager::get_task(const std::string &room_id, const std::string &label) -> task
+{
+    try {
+        conn.start_query("SELECT ID, creatorID, label FROM tasks WHERE roomID = '" + room_id + "' AND label = '" + label + "'",
+                         state);
+
+        auto task = conn.read_some_rows(state);
+
+        if (task.size() > 0)
+            return {std::to_string(task.at(0).at(0).get_uint64()), std::to_string(task.at(0).at(1).get_uint64()), this->get_profile(std::to_string(task.at(0).at(1).get_uint64())).name, task.at(0).at(2).get_string()};
+    } catch (boost::mysql::error_with_diagnostics &exception) {
+    }
+
+    return {};
+}
+
+
 auto data_base_manager::delete_task(const std::string &room_id, const std::string &label) -> bool
 {
     try
@@ -348,11 +388,14 @@ auto data_base_manager::get_profile_rooms(const std::string &profile_id) -> std:
         conn.start_query("SELECT * FROM profile_room INNER JOIN rooms ON profile_room.roomID = rooms.ID AND profile_room.profileID = '" + profile_id + "'",
                          state);
 
-        auto rooms = conn.read_some_rows(state);
+        std::vector<std::vector<field>> rooms;
+        for (auto row : conn.read_some_rows(state)) {
+            rooms.push_back(row.as_vector());
+        }
 
         for (auto room : rooms)
         {
-            res.push_back({std::to_string(room.at(3).get_int64()), this->get_profile(std::to_string(room.at(3).get_int64())).name, room.at(4).get_string(), {}});
+            res.push_back({std::to_string(room.at(3).get_int64()), this->get_profile(std::to_string(room.at(3).get_int64())).name, room.at(4).get_string(), this->get_room_tasks(std::to_string(room.at(2).get_int64()))});
         }
     }
     catch (boost::mysql::error_with_diagnostics &exception)
@@ -375,7 +418,7 @@ auto data_base_manager::get_profile_tasks(const std::string &profile_id) -> std:
 
         for (auto task : tasks)
         {
-            res.push_back({std::to_string(task.at(3).get_int64()), this->get_profile(std::to_string(task.at(3).get_int64())).name, task.at(2).get_string()});
+            res.push_back({std::to_string(task.at(1).get_int64()), std::to_string(task.at(3).get_int64()), this->get_profile(std::to_string(task.at(3).get_int64())).name, task.at(2).get_string()});
         }
     }
     catch (boost::mysql::error_with_diagnostics &exception)
@@ -398,7 +441,7 @@ auto data_base_manager::get_room_profiles(const std::string &room_id) -> std::ve
 
         for (auto profile : profiles)
         {
-            res.push_back({std::to_string(profile.at(2).get_uint64()), profile.at(3).get_string(), {}});
+            res.push_back({std::to_string(profile.at(2).get_uint64()), profile.at(3).get_string()});
         }
     }
     catch (boost::mysql::error_with_diagnostics &exception)
@@ -420,7 +463,7 @@ auto data_base_manager::get_room_tasks(const std::string &room_id) -> std::vecto
 
         for (auto task : tasks)
         {
-            res.push_back({std::to_string(task.at(3).get_int64()), this->get_profile(std::to_string(task.at(3).get_int64())).name, task.at(2).get_string()});
+            res.push_back({std::to_string(task.at(1).get_int64()), std::to_string(task.at(3).get_int64()), this->get_profile(std::to_string(task.at(3).get_int64())).name, task.at(2).get_string()});
         }
     }
     catch (boost::mysql::error_with_diagnostics &exception)

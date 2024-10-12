@@ -202,8 +202,15 @@ void http_connection::post_request_handler()
     }
     else if (request_.target().find("/RoomCreation") == 0)
     {
-        beast::ostream(response_.body()) << R"%({"room creation info": ")%" << std::boolalpha << data_base.create_room(data_base.get_profile_id(request_header_data.at("login"), request_header_data.at("password")), request_body_data.at("room label")) << R"%("})%";
-        
+        std::string room_label = request_body_data.at("room label");
+        std::string login = request_header_data.at("login");
+        std::string password = request_header_data.at("password");
+
+        bool creation_status = data_base.create_room(data_base.get_profile_id(login, password), room_label);
+        beast::ostream(response_.body()) << R"%({"room creation info": ")%" << std::boolalpha << creation_status << R"%(")%";
+        if (creation_status)
+            beast::ostream(response_.body()) << R"%(, )%" << R"%("room": )%" << data_base.get_room(data_base.get_profile_id(login, password), room_label).to_json();
+        beast::ostream(response_.body()) << R"%(})%";
         std::cout << "room creating\n";
     }
     else if (request_.target().find("/TaskCreation") == 0)

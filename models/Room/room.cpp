@@ -5,7 +5,7 @@ nlohmann::json room::to_json() const {
     nlohmann::json tasks;
 
     for (auto task : this->tasks) {
-        tasks.push_back(task.to_json());
+        tasks.push_back(task.to_short_json());
     }
 
     return {

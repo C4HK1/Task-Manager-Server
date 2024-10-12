@@ -35,6 +35,7 @@ int main()
     //         std::cout << j << std::endl;
     //     }
     // }
+    manager.print_tabel("rooms");
 
     std::cout << "=============================\n";
 

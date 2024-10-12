@@ -10,7 +10,5 @@ struct profile {
     std::string ID;
     std::string name;
 
-    std::vector<room> rooms;
-
     nlohmann::json to_json() const;
 };

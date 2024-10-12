@@ -51,6 +51,7 @@ public:
     auto create_profile_room_table() -> void;
     auto create_room(const std::string &creator_id, const std::string &label) -> bool;
     auto get_room_id(const std::string &creator_id, const std::string &label) -> std::string;
+    auto get_room(const std::string &creator_id, const std::string &label) -> room;
     auto delete_room(const std::string &creator_id, const std::string &label) -> void;
     
     auto append_member_to_room(const std::string &member_id, const std::string &creator_id, const std::string &label) -> bool;
@@ -59,6 +60,7 @@ public:
     auto create_tasks_table() -> void;
     auto create_task(const std::string &room_id, const std::string &label, const std::string &creator_id) -> bool;
     auto get_task_id(const std::string &room_id, const std::string &label) -> std::string;
+    auto get_task(const std::string &room_id, const std::string &label) -> task;
     auto delete_task(const std::string &room_id, const std::string &label) -> bool;
 
     //Join part
