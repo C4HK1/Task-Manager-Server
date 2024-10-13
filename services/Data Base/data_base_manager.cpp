@@ -234,10 +234,13 @@ auto data_base_manager::get_room(const std::string &creator_id, const std::strin
         conn.start_query("SELECT creatorID, label, ID FROM rooms WHERE creatorID = '" + creator_id + "' AND label = '" + label + "'",
                          state);
 
-        auto room = conn.read_some_rows(state);
+        std::vector<std::vector<field>> room;
+        for (auto row : conn.read_some_rows(state)) {
+            room.push_back(row.as_vector());
+        }
 
         if (room.size() > 0)
-            return {std::to_string(room.at(0).at(0).get_uint64()), this->get_profile(creator_id).name, room.at(0).at(1).get_string(), this->get_room_tasks(std::to_string(room.at(0).at(2).get_uint64()))};
+            return {std::to_string(room.at(0).at(0).get_int64()), this->get_profile(creator_id).name, room.at(0).at(1).get_string(), this->get_room_tasks(std::to_string(room.at(0).at(2).get_int64()))};
     } catch (boost::mysql::error_with_diagnostics &exception) {
         std::cout << exception.get_diagnostics().server_message();
         std::cout << exception.get_diagnostics().client_message();

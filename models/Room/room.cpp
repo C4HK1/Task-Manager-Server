@@ -1,5 +1,6 @@
 #include "room.h"
 #include <nlohmann/json_fwd.hpp>
+#include <iostream>
 
 nlohmann::json room::to_json() const {
     nlohmann::json tasks;
