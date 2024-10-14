@@ -223,10 +223,18 @@ void http_connection::post_request_handler()
     }
     else if (request_.target().find("/TaskCreation") == 0)
     {
-        std::cout << request_body_data << std::endl;
+        std::string room_creator_id = request_body_data.at("room creator id");
+        std::string room_label = request_body_data.at("room label");
+        std::string task_label = request_body_data.at("task label");
+        std::string login = request_header_data.at("login");
+        std::string password = request_header_data.at("password");
 
-        beast::ostream(response_.body()) << R"%({"task creation info": ")%" << std::boolalpha << data_base.create_task(data_base.get_room_id(request_body_data.at("room creator id"), request_body_data.at("room label")), request_body_data.at("task label"), data_base.get_profile_id(request_header_data.at("login"), request_header_data.at("password"))) << R"%("})%";
-
+        bool creation_status = data_base.create_task(data_base.get_room_id(room_creator_id, room_label), task_label, data_base.get_profile_id(request_header_data.at("login"), request_header_data.at("password")));
+        beast::ostream(response_.body()) << R"%({"task creation info": ")%" << std::boolalpha << creation_status << R"%(")%";
+        if (creation_status)
+            beast::ostream(response_.body()) << R"%(, )%" << R"%("task": )%" << data_base.get_task(data_base.get_room_id(room_creator_id, room_label), task_label).to_json();
+        beast::ostream(response_.body()) << R"%(})%";
+        
         std::cout << "task creating\n";
     }
     else if (request_.target().find("/RoomDeleting") == 0)
