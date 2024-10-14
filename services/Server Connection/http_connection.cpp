@@ -93,6 +93,14 @@ void http_connection::get_request_handler()
     {
         nlohmann::json request_body_data = nlohmann::json::parse(beast::buffers_to_string(request_.body().data()));
     }
+    else if (request_.target().find("/GetRoomInfo") == 0)
+    {
+        nlohmann::json request_body_data = nlohmann::json::parse(beast::buffers_to_string(request_.body().data()));
+
+        auto res = data_base.get_room(request_body_data.at("room creator id"), request_body_data.at("label"));
+
+        beast::ostream(response_.body()) << R"%({"room": )%" << res.to_json() << R"%(})%";
+    }
     else if (request_.target().find("/GetProfileRooms") == 0)
     {
         auto rooms = data_base.get_profile_rooms(data_base.get_profile_id(request_header_data.at("login"), request_header_data.at("password")));
@@ -215,6 +223,8 @@ void http_connection::post_request_handler()
     }
     else if (request_.target().find("/TaskCreation") == 0)
     {
+        std::cout << request_body_data << std::endl;
+
         beast::ostream(response_.body()) << R"%({"task creation info": ")%" << std::boolalpha << data_base.create_task(data_base.get_room_id(request_body_data.at("room creator id"), request_body_data.at("room label")), request_body_data.at("task label"), data_base.get_profile_id(request_header_data.at("login"), request_header_data.at("password"))) << R"%("})%";
 
         std::cout << "task creating\n";
