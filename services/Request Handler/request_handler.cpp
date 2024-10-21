@@ -27,7 +27,7 @@ auto request_handler::get_request_handler() -> void {
 
         std::string token;
 
-        this->jwt_status = jwt.create_jwt(this->login, this->password, 60 * 60 * 24 * 7, token);
+        this->jwt_status = jwt.create_jwt(this->login, this->password, token);
 
         if (this->data_base_status)
             token = "";
@@ -142,7 +142,7 @@ auto request_handler::get_request_handler() -> void {
 
 auto request_handler::post_request_handler() -> void {
     if (!request.target().find("/ProfileCreation")) {
-        std::string name = request_data.at("name");
+        auto name = request_data.at("name");
 
         struct profile profile;
         
@@ -150,7 +150,7 @@ auto request_handler::post_request_handler() -> void {
 
         std::string token;
 
-        this->jwt_status = jwt.create_jwt(this->login, this->password, 60 * 60 * 24 * 7, token);
+        this->jwt_status = jwt.create_jwt(this->login, this->password, token);
 
         if (this->data_base_status)
             token = "";
@@ -159,7 +159,7 @@ auto request_handler::post_request_handler() -> void {
     
         std::cout << "profile creation";
     } else if (!request.target().find("/RoomCreation")) {
-        std::string room_label = request_data.at("room label");
+        auto room_label = request_data.at("room label");
 
         struct room room;
 
@@ -169,9 +169,9 @@ auto request_handler::post_request_handler() -> void {
         
         std::cout << "room creating\n";
     } else if (!request.target().find("/TaskCreation")) {
-        std::string room_creator_id = request_data.at("room creator id");
-        std::string room_label = request_data.at("room label");
-        std::string task_label = request_data.at("task label");
+        auto room_creator_id = request_data.at("room creator id");
+        auto room_label = request_data.at("room label");
+        auto task_label = request_data.at("task label");
 
         struct task task;
 

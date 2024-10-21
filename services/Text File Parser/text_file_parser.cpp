@@ -6,9 +6,9 @@
 
 auto text_file_parser::get_file_length(std::ifstream &input_file) -> u_int64_t
 {
-    input_file.seekg (0, input_file.end);
+    input_file.seekg ({}, input_file.end);
     auto length = input_file.tellg();
-    input_file.seekg (0, input_file.beg);
+    input_file.seekg ({}, input_file.beg);
 
     return length;
 }
@@ -30,7 +30,7 @@ auto text_file_parser::read_file_to_string(const std::string& path) -> std::stri
             return {};
         }
     } else {
-        std::cerr << "Файл не найден!" << std::endl;
+        std::cerr << "file not found!" << std::endl;
     }
 
     input_file.close();
