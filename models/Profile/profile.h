@@ -9,6 +9,8 @@
 struct profile {
     std::string ID;
     std::string name;
+    std::string login;
+    std::string password;
 
     nlohmann::json to_json() const;
 };

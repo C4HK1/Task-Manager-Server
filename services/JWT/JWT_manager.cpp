@@ -12,29 +12,33 @@ JWT_manager::JWT_manager(const std::string &public_key_path, const std::string &
     private_key_ = text_file_parser::read_file_to_string(private_key_path);
 }
 
-auto JWT_manager::validate_jwt_token(http::request<http::dynamic_body> request) -> jwt::jwt_object
+auto JWT_manager::validate_jwt_token(http::request<http::dynamic_body> request, json_t &result_data) -> JWT_EXECUTION_STATUS
 {
-    std::string authorizationHeader;
-    jwt::jwt_object result;
-
     for (auto &header : request.base())
     {
-        auto headerValue = std::string(header.value());
+        auto header_value = std::string(header.value());
         if (header.name() == http::field::authorization)
         {
             using namespace jwt::params;
             try {
-                result = jwt::decode(headerValue, algorithms({"RS256"}), verify(false), secret(public_key_));
+                auto data = jwt::decode(header_value, algorithms({"RS256"}), verify(false), secret(public_key_)).payload().create_json_obj();
+                
+                if (std::atoi(std::string(data.at("destroy_time")).c_str()) <= time(NULL))
+                    return JWT_TIME_LIMIT_EXECEEDED;
+                
+                result_data = data;
+
+                return JWT_COMPLETED_SUCCESSFULY;
             } catch(std::exception exception) {
-                return result;
+                return JWT_DECODING_FILED;
             }
         }
     }
 
-    return result;
+    return JWT_NO_TOKEN_HEADER;
 }
 
-auto JWT_manager::create_jwt(const std::string &login, const std::string &password, uint64_t time_to_live) -> std::string
+auto JWT_manager::create_jwt(const std::string &login, const std::string &password, uint64_t time_to_live, std::string &result_jwt) -> JWT_EXECUTION_STATUS
 {
     time_t current_time = time(NULL);
 
@@ -43,9 +47,9 @@ auto JWT_manager::create_jwt(const std::string &login, const std::string &passwo
     std::error_code ec{};
     auto sign = obj.signature(ec);
 
-    if (ec) {
-        return "";
-    }
+    if (ec)
+        return JWT_CREATION_FAILED;
 
-    return sign;
+    result_jwt = sign;
+    return  JWT_COMPLETED_SUCCESSFULY;
 }
