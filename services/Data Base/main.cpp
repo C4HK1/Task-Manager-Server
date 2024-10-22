@@ -3,7 +3,7 @@
 
 int main()
 {
-    data_base_manager manager("123", "123", "0.0.0.0", "3306", "myuser", "secret", "mydatabase");
+    data_base_manager manager("0.0.0.0", "3306", "myuser", "secret", "mydatabase");
 
     std::cout << "profiles: \n";
     manager.print_tabel("profiles");
@@ -16,42 +16,26 @@ int main()
 
     std::cout << "=============================\n";
 
-    struct profile profile;
-    struct room room;
-    struct task task;
-    std::vector<struct room> rooms;
-    std::vector<struct task> tasks;
-    std::vector<struct profile> profiles;
-    // std::cout << manager.create_profile("LENYA") << std::endl;
-    // std::cout << manager.delete_profile() << std::endl;
-    // std::cout << manager.get_profile_by_ID(1, profile) << std::endl;
-    // std::cout << profile.to_json() << std::endl;
-    // std::cout << manager.create_room("room1", room) << std::endl;
-    // std::cout << manager.delete_room(1, "room1") << std::endl;
-    // std::cout << manager.get_room(1, "room1", room) << std::endl;
-    // std::cout << room.to_json() << std::endl;
-    // std::cout << manager.create_task(1, "room1", "task1", task) << std::endl;
-    // std::cout << manager.delete_task(1, "room1", "task1") << std::endl;
-    // std::cout << manager.get_task(1, "room1", "task1", task) << std::endl;
-    // std::cout << task.to_json() << std::endl;
-    // std::cout << manager.get_manager().to_json() << std::endl;
-    // std::cout << manager.get_profile_rooms(rooms) << std::endl;
-    // for (auto room : rooms) {
-    //     std::cout << room.to_json() << std::endl;
+    // std::cout << manager.create_profile("C4H9", "1", "1") << std::endl;
+    // std::cout << manager.create_room("1", "room1") << std::endl;
+    // std::cout << manager.create_task("1", "task1", "1") << std::endl;
+    
+    // manager.delete_room("1", "room1");
+    // manager.delete_profile("1", "1");
+    // std::cout << manager.delete_task("1", "task1", "2") << std::endl;
+    
+    // std::cout << manager.append_member_to_room("2", "1", "room1");
+
+    // auto res = manager.get_room_users("2");
+
+    // auto res = manager.find_users_with_prefix_in_name("1");
+
+    // for (auto i : res) {
+    //     for (auto j : i) {
+    //         std::cout << j << std::endl;
+    //     }
     // }
-    // std::cout << manager.get_profile_tasks(tasks) << std::endl;
-    // for (auto task : tasks) {
-    //     std::cout << task.to_json() << std::endl;
-    // }
-    // std::cout << manager.get_room_tasks(1, "room1", tasks) << std::endl;
-    // for (auto task : tasks) {
-    //     std::cout << task.to_json() << std::endl;
-    // }
-    // std::cout << manager.get_room_profiles(1, "room1", profiles) << std::endl;
-    // for (auto profile : profiles) {
-    //     std::cout << profile.to_json() << std::endl;
-    // }
-    // std::cout << manager.append_member_to_room(2, 1, "room1") << std::endl;
+    // manager.print_tabel("rooms");
 
     std::cout << "=============================\n";
 
@@ -63,6 +47,19 @@ int main()
     manager.print_tabel("profile_room");
     std::cout << "tasks: \n";
     manager.print_tabel("tasks");
+
+
+    // auto p = manager.get_profile_rooms("1");
+    // auto p = manager.get_room_profiles("1");
+    // auto p = manager.get_profile("1");
+    // auto p = manager.get_profile_id("1", "1");
+    // auto p = manager.get_profile_tasks("1");
+    // auto p = manager.get_room_tasks("1");
+    // auto p = manager.get_room_id("1", "room1");
+    // auto p = manager.get_task_id("1", "task1");
+
+    // std::cout << "\n\n\n" << p << std::endl;
+    // std::cout << manager.get_user_id("1", "1") << std::endl;
 
     return 0;
 }

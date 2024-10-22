@@ -5,12 +5,11 @@
 #include <nlohmann/json_fwd.hpp>
 
 struct task {
-    u_int64_t ID = 0;
-    u_int64_t room_id = 0;
-    std::string label;
-    u_int64_t creator_id = 0;
-
+    std::string room_id;
+    std::string creator_id;
     std::string creator_name;
+    std::string label;
 
     nlohmann::json to_json() const;
+    nlohmann::json to_short_json() const;
 };

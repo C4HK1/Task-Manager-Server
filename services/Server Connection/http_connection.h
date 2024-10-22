@@ -29,6 +29,7 @@ class http_connection : public std::enable_shared_from_this<http_connection>
 {
 public:
     http_connection(tcp::socket socket);
+    JWT_manager jwt;
 
     // Initiate the asynchronous operations associated with the connection.
     void start();
@@ -57,6 +58,18 @@ private:
 
     // Construct a response message based on the program state.
     void write_response();
+
+    // Asynchronously transmit the response message.
+    void get_request_handler();
+
+    // Asynchronously transmit the response message.
+    void post_request_handler();
+
+    // Asynchronously transmit the response message.
+    void delete_request_handler();
+
+    // Asynchronously transmit the response message.
+    void patch_request_handler();
 
     // Check whether we have spent enough time on this connection.
     void check_deadline();

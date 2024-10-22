@@ -26,8 +26,6 @@ add_executable(RestfulApi
     "services/Text File Parser/text_file_parser.cpp"
     "services/Data Base/data_base_manager.h"
     "services/Data Base/data_base_manager.cpp"    
-    "services/Request Handler/request_handler.h"    
-    "services/Request Handler/request_handler.cpp"    
 )
 
 target_link_libraries(RestfulApi ${MYCOMPILE_FLAGS} ${Boost_LIBRARIES} cpp-jwt::cpp-jwt)
