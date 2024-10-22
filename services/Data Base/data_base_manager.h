@@ -38,19 +38,19 @@ enum DATA_BASE_EXECUTION_STATUS {
     DATA_BASE_THERE_IS_NO_PROFILE_WITH_SUCH_NAME,
     DATA_BASE_THERE_IS_NO_PROFILE_WITH_SUCH_ID,
     DATA_BASE_THERE_IS_NO_PROFILE_WITH_SUCH_LOGIN_AND_PASSWORD,
+    DATA_BASE_UNKNOWN_PROFILE,
     
     //Room part
     DATA_BASE_ROOM_CREATION_FAILED,
     DATA_BASE_THERE_IS_NO_ROOM_WITH_SUCH_PARAMETERS,
     DATA_BASE_ROOM_WITH_SUCH_PARAMETERS_IS_ALREADY_EXIST,
     DATA_BASE_THIS_PROFILE_IS_ALREADY_EXIST_IN_THIS_ROOM,
-    DATA_BASE_ROOM_DELETION_ACCESS_ERROR,
+    DATA_BASE_ROOM_ACCESS_ERROR,
     
     //Task part
     DATA_BASE_TASK_CREATION_FAILED,
     DATA_BASE_THERE_IS_NO_TASK_WITH_SUCH_PARAMETERS,
     DATA_BASE_TASK_WITH_SUCH_PARAMETERS_IS_ALREADY_EXIST,
-    DATA_BASE_TASK_DELETION_FAILED,
     
     //Join part
 };
@@ -102,10 +102,11 @@ public:
                       const std::string &data_base = DEFAULT_DATA_BASE);
     ~data_base_manager();
 
+    auto get_manager() -> profile;
+
     //Profile part
 
-    auto create_profile(const std::string &name, const std::string &login, const std::string &password, profile &profile) -> DATA_BASE_EXECUTION_STATUS;
-    auto get_profile_by_name(const std::string &name, profile &profile) -> DATA_BASE_EXECUTION_STATUS;
+    auto create_profile(const std::string &name) -> DATA_BASE_EXECUTION_STATUS;
     auto get_profile_by_ID(const u_int64_t ID, profile &profile) -> DATA_BASE_EXECUTION_STATUS;
     auto delete_profile() -> DATA_BASE_EXECUTION_STATUS;
 

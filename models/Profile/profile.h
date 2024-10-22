@@ -8,7 +8,7 @@
 #include "../Room/room.h"
 
 struct profile {
-    u_int64_t ID;
+    u_int64_t ID = 0;
     std::string name;
     std::string login;
     std::string password;

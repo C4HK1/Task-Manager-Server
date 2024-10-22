@@ -144,9 +144,7 @@ auto request_handler::post_request_handler() -> void {
     if (!request.target().find("/ProfileCreation")) {
         auto name = request_data.at("name");
 
-        struct profile profile;
-        
-        this->data_base_status = this->data_base->create_profile(name, this->login, this->password, profile);
+        this->data_base_status = this->data_base->create_profile(name);
 
         std::string token;
 
