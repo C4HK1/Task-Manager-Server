@@ -92,10 +92,10 @@ auto data_base_manager::create_rooms_table() -> void {
     conn.query(
         R"%(
             CREATE TABLE rooms (
-                ID BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT NOT NULL UNIQUE,
-                creatorID BIGINT UNSIGNED,
+                creator_ID BIGINT UNSIGNED,
                 label varchar(50) NOT NULL,
-                FOREIGN KEY (creatorID) REFERENCES profiles(ID)
+                PRIMARY KEY (creator_ID , label),
+                FOREIGN KEY (creator_ID) REFERENCES profiles(ID)
             )
         )%", result);
 }
@@ -104,11 +104,11 @@ auto data_base_manager::create_profile_room_table() -> void {
     conn.query(
         R"%(
             CREATE TABLE profile_room (
-                profileID BIGINT UNSIGNED NOT NULL,
-                roomID BIGINT UNSIGNED NOT NULL,
-                PRIMARY KEY (profileID , roomID),
-                FOREIGN KEY (profileID) REFERENCES profiles(ID),
-                FOREIGN KEY (roomID) REFERENCES rooms(ID) ON DELETE CASCADE
+                profile_ID BIGINT UNSIGNED NOT NULL,
+                room_ID BIGINT UNSIGNED NOT NULL,
+                PRIMARY KEY (profile_ID , room_ID),
+                FOREIGN KEY (profile_ID) REFERENCES profiles(ID),
+                FOREIGN KEY (room_ID) REFERENCES rooms(ID) ON DELETE CASCADE
             )
         )%", result);
 }
@@ -117,12 +117,13 @@ auto data_base_manager::create_tasks_table() -> void {
     conn.query(
         R"%(
             CREATE TABLE tasks (
-                ID BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT NOT NULL UNIQUE,
-                roomID BIGINT UNSIGNED NOT NULL,
+                room_creator_ID BIGINT UNSIGNED NOT NULL,
+                room_label varchar(50) NOT NULL,
                 label varchar(50) NOT NULL,
-                creatorID BIGINT UNSIGNED,
-                FOREIGN KEY (creatorID) REFERENCES profiles(ID) ON DELETE SET NULL,
-                FOREIGN KEY (roomID) REFERENCES rooms(ID) ON DELETE CASCADE
+                creator_ID BIGINT UNSIGNED,
+                PRIMARY KEY (room_creator_ID , room_label, label),
+                FOREIGN KEY (creator_ID) REFERENCES profiles(ID) ON DELETE SET NULL,
+                FOREIGN KEY (room_ID) REFERENCES rooms(ID) ON DELETE CASCADE
             )
         )%", result);
 }
@@ -274,7 +275,7 @@ auto data_base_manager::delete_profile() -> DATA_BASE_EXECUTION_STATUS
 
         request.str(std::string());
 
-        request << "DELETE FROM profile_room WHERE profileID = '"
+        request << "DELETE FROM profile_room WHERE profile_ID = '"
                 << this->manager.ID
                 << "'";
 
@@ -375,7 +376,7 @@ auto data_base_manager::create_room(const std::string &room_label, room &result_
 
         std::stringstream request;
 
-        request << "SELECT * FROM rooms WHERE creatorID = "
+        request << "SELECT * FROM rooms WHERE creator_ID = "
                 << this->manager.ID
                 << " AND label = '"
                 << room_label
@@ -392,7 +393,7 @@ auto data_base_manager::create_room(const std::string &room_label, room &result_
 
         request.str(std::string());
 
-        request << "INSERT INTO rooms (creatorID, label) VALUES ("
+        request << "INSERT INTO rooms (creator_ID, label) VALUES ("
                 << this->manager.ID 
                 << ", '" 
                 << room_label 
@@ -404,7 +405,7 @@ auto data_base_manager::create_room(const std::string &room_label, room &result_
     
         request.str(std::string());
 
-        request << "SELECT ID FROM rooms WHERE creatorID = "
+        request << "SELECT ID FROM rooms WHERE creator_ID = "
                 << this->manager.ID
                 << " AND label = '"
                 << room_label
@@ -423,7 +424,7 @@ auto data_base_manager::create_room(const std::string &room_label, room &result_
 
         request.str(std::string());
 
-        request << "INSERT INTO profile_room (profileID, roomID) VALUES ("
+        request << "INSERT INTO profile_room (profile_ID, room_ID) VALUES ("
                 << this->manager.ID
                 << ", "
                 << room_ID
@@ -447,7 +448,7 @@ auto data_base_manager::get_room(const u_int64_t room_creator_ID, const std::str
     try {
         std::stringstream request;
 
-        request << "SELECT * FROM rooms WHERE rooms.creatorID = " 
+        request << "SELECT * FROM rooms WHERE rooms.creator_ID = " 
                 << room_creator_ID
                 << " AND label = '"
                 << room_label
@@ -461,9 +462,9 @@ auto data_base_manager::get_room(const u_int64_t room_creator_ID, const std::str
 
         request.str(std::string());
 
-        request << "SELECT * FROM (SELECT rooms.* FROM profile_room INNER JOIN rooms ON profile_room.roomID = rooms.ID AND profile_room.profileID = "
+        request << "SELECT * FROM (SELECT rooms.* FROM profile_room INNER JOIN rooms ON profile_room.room_ID = rooms.ID AND profile_room.profile_ID = "
                 << manager.ID
-                << ") rooms_with_access WHERE rooms_with_access.creatorID = " 
+                << ") rooms_with_access WHERE rooms_with_access.creator_ID = " 
                 << room_creator_ID
                 << " AND label = '"
                 << room_label
@@ -515,7 +516,7 @@ auto data_base_manager::delete_room(const u_int64_t room_creator_ID, const std::
 
         std::stringstream request;
 
-        request << "DELETE FROM rooms WHERE creatorID = "
+        request << "DELETE FROM rooms WHERE creator_ID = "
                 << room_creator_ID
                 << " AND label = '"
                 << room_label
@@ -546,9 +547,9 @@ auto data_base_manager::append_member_to_room(const u_int64_t member_ID, const u
 
         std::stringstream request;
 
-        request << "SELECT * FROM profile_room WHERE profileID = "
+        request << "SELECT * FROM profile_room WHERE profile_ID = "
                 << member_ID 
-                << " AND roomID = '"
+                << " AND room_ID = '"
                 << room.ID
                 << "'";
 
@@ -563,7 +564,7 @@ auto data_base_manager::append_member_to_room(const u_int64_t member_ID, const u
 
         request.str(std::string());
 
-        request << "INSERT INTO profile_room (profileID, roomID) VALUES ("
+        request << "INSERT INTO profile_room (profile_ID, room_ID) VALUES ("
                 << member_ID
                 << ", "
                 << room.ID
@@ -603,7 +604,7 @@ auto data_base_manager::create_task(const u_int64_t room_creator_ID, const std::
 
         std::stringstream request;
 
-        request << "SELECT * FROM tasks WHERE roomID = "
+        request << "SELECT * FROM tasks WHERE room_ID = "
                 << room.ID
                 << " AND label = '"
                 << task_label
@@ -620,7 +621,7 @@ auto data_base_manager::create_task(const u_int64_t room_creator_ID, const std::
         
         request.str(std::string());
 
-        request << "INSERT INTO tasks (roomID, label, creatorID) VALUES ("
+        request << "INSERT INTO tasks (room_ID, label, creator_ID) VALUES ("
                 << room.ID
                 << ", '"
                 << task_label
@@ -653,7 +654,7 @@ auto data_base_manager::get_task(const u_int64_t room_creator_ID, const std::str
 
         std::stringstream request;
 
-        request << "SELECT * FROM tasks WHERE roomID = "
+        request << "SELECT * FROM tasks WHERE room_ID = "
                 << room.ID
                 << " AND label = '"
                 << task_label
@@ -705,7 +706,7 @@ auto data_base_manager::delete_task(const u_int64_t room_creator_ID, const std::
 
         std::stringstream request;
 
-        request << "SELECT * FROM tasks WHERE roomID = "
+        request << "SELECT * FROM tasks WHERE room_ID = "
                 << room.ID
                 << " AND label = '" 
                 << task_label
@@ -722,7 +723,7 @@ auto data_base_manager::delete_task(const u_int64_t room_creator_ID, const std::
 
         request.str(std::string());
 
-        request << "DELETE FROM tasks WHERE roomID = "
+        request << "DELETE FROM tasks WHERE room_ID = "
                 << room.ID
                 << " AND label = '"
                 << task_label
@@ -748,7 +749,7 @@ auto data_base_manager::get_profile_rooms(std::vector<room> &result_rooms) -> DA
     try {
         std::stringstream request;
 
-        request << "SELECT rooms.* FROM profile_room INNER JOIN rooms ON profile_room.roomID = rooms.ID AND profile_room.profileID = "
+        request << "SELECT rooms.* FROM profile_room INNER JOIN rooms ON profile_room.room_ID = rooms.ID AND profile_room.profile_ID = "
                 << manager.ID;
                 
         conn.execute(request.str(), result);
@@ -788,9 +789,9 @@ auto data_base_manager::get_profile_tasks(std::vector<task> &result_tasks) -> DA
     try {
         std::stringstream request;
 
-        request << "SELECT tasks.* FROM tasks INNER JOIN (SELECT profile_room.roomID FROM profile_room INNER JOIN rooms ON profile_room.roomID = rooms.ID AND profile_room.profileID = "
+        request << "SELECT tasks.* FROM tasks INNER JOIN (SELECT profile_room.room_ID FROM profile_room INNER JOIN rooms ON profile_room.room_ID = rooms.ID AND profile_room.profile_ID = "
                 << manager.ID
-                << ") rooms_with_access ON rooms_with_access.roomID = tasks.roomID";
+                << ") rooms_with_access ON rooms_with_access.room_ID = tasks.room_ID";
 
         conn.execute(request.str(), result);
 
@@ -837,9 +838,9 @@ auto data_base_manager::get_room_profiles(const u_int64_t room_creator_ID, const
 
         std::stringstream request;
 
-        request << "SELECT profiles.* FROM (SELECT * FROM profile_room WHERE profileID = "
+        request << "SELECT profiles.* FROM (SELECT * FROM profile_room WHERE profile_ID = "
                 << this->manager.ID
-                << ") profile_room_with_access INNER JOIN profiles ON profile_room_with_access.profileID = profiles.ID AND profile_room_with_access.roomID = "
+                << ") profile_room_with_access INNER JOIN profiles ON profile_room_with_access.profile_ID = profiles.ID AND profile_room_with_access.room_ID = "
                 << room.ID;
 
         conn.execute(request.str(), result);
@@ -878,9 +879,9 @@ auto data_base_manager::get_room_tasks(const u_int64_t room_creator_ID, const st
 
         std::stringstream request;
 
-        request << "SELECT tasks.* FROM tasks INNER JOIN (SELECT rooms.ID FROM profile_room INNER JOIN rooms ON profile_room.roomID = rooms.ID AND profile_room.profileID = "
+        request << "SELECT tasks.* FROM tasks INNER JOIN (SELECT rooms.ID FROM profile_room INNER JOIN rooms ON profile_room.room_ID = rooms.ID AND profile_room.profile_ID = "
                 << manager.ID
-                << ") rooms_with_access ON tasks.roomID = rooms_with_access.ID AND rooms_with_access.ID = "
+                << ") rooms_with_access ON tasks.room_ID = rooms_with_access.ID AND rooms_with_access.ID = "
                 << room.ID;
 
         conn.execute(request.str(), result);
