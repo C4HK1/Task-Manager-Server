@@ -1,6 +1,6 @@
 #include "profile.h"
 
-nlohmann::json profile::to_json() const {
+auto profile::to_json() const -> nlohmann::json {
     u_int64_t ID = 0;
     std::string name;
     std::string login;

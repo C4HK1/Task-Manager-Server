@@ -1,7 +1,6 @@
 #include "room.h"
-#include <nlohmann/json_fwd.hpp>
 
-nlohmann::json room::to_json() const {
+auto room::to_json() const -> nlohmann::json {
     return {
             {"creator_ID", this->creator_ID},
             {"name", this->name},

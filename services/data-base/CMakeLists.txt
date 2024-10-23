@@ -12,12 +12,14 @@ add_executable(DataBase
     main.cpp
     data_base_manager.h
     data_base_manager.cpp
-    ../../models/Profile/profile.h
-    ../../models/Room/room.h
-    ../../models/Task/task.h
-    ../../models/Profile/profile.cpp
-    ../../models/Room/room.cpp
-    ../../models/Task/task.cpp
+    ../../models/profile/profile.h
+    ../../models/room/room.h
+    ../../models/task/task.h
+    ../../models/profile/profile.cpp
+    ../../models/room/room.cpp
+    ../../models/task/task.cpp
+    ../../models/config/config.h
+    ../../models/config/config.cpp
 )
 
 target_link_libraries(DataBase ${Boost_LIBRARIES} cpp-jwt::cpp-jwt)

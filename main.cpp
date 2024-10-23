@@ -12,7 +12,7 @@
 #include <openssl/x509.h>
 #include <jwt/jwt.hpp>
 
-#include "services/Server Connection/http_connection.h"
+#include "server/connection/http_connection.h"
 
 namespace beast = boost::beast;         // from <boost/beast.hpp>
 namespace net = boost::asio;            // from <boost/asio.hpp>

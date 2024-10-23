@@ -5,7 +5,7 @@
 #include <nlohmann/json.hpp>
 #include <nlohmann/json_fwd.hpp>
 
-#include "../Task/task.h"
+#include "../task/task.h"
 
 struct room {
     u_int64_t creator_ID = 0;
@@ -16,5 +16,5 @@ struct room {
     //Additional information
     std::string creator_name;
 
-    nlohmann::json to_json() const;
+    auto to_json() const -> nlohmann::json;
 };

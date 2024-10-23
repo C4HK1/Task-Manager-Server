@@ -12,8 +12,8 @@
 #include <iostream>
 #include <vector>
 
-#include "../JWT/JWT_manager.h"
-#include "../Data Base/data_base_manager.h"
+#include "../../services/JWT/JWT_manager.h"
+#include "../../services/data-base/data_base_manager.h"
 
 namespace beast = boost::beast;         // from <boost/beast.hpp>
 namespace http = beast::http;           // from <boost/beast/http.hpp>

@@ -5,7 +5,7 @@
 #include <nlohmann/json.hpp>
 #include <nlohmann/json_fwd.hpp>
 
-#include "../Room/room.h"
+#include "../room/room.h"
 
 struct profile {
     u_int64_t ID = 0;
@@ -16,5 +16,5 @@ struct profile {
     std::string email;
     std::string phone;
 
-    nlohmann::json to_json() const;
+    auto to_json() const -> nlohmann::json;
 };

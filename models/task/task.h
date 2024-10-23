@@ -21,5 +21,5 @@ struct task {
     //Additional information
     std::string creator_name;
 
-    nlohmann::json to_json() const;
+    auto to_json() const -> nlohmann::json;
 };

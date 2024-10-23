@@ -5,7 +5,7 @@
 
 int main()
 {
-    data_base_manager manager("1231", "123", "0.0.0.0", "3306", "myuser", "secret", "mydatabase");
+    data_base_manager manager("123", "123", "0.0.0.0", "3306", "myuser", "secret", "mydatabase");
     // data_base_manager manager;
 
     std::cout << manager.get_manager().to_json() << std::endl;
@@ -34,7 +34,7 @@ int main()
     std::vector<struct task> tasks;
     std::vector<struct profile> profiles;
 
-    // std::cout << manager.create_profile("C4H91", "1231", "123", "s@mail.ru", "666", profile) << std::endl;
+    // std::cout << manager.create_profile("C4H9", "123", "123", "s@mail.ru", "666", profile) << std::endl;
     // std::cout << manager.delete_profile() << std::endl;
     // std::cout << manager.get_profile_by_ID(2, profile) << std::endl;
     // std::cout << profile.to_json() << std::endl;

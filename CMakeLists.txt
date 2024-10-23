@@ -12,24 +12,26 @@ include_directories(${Boost_INCLUDE_DIRS})
 
 add_executable(RestfulApi 
     main.cpp
-    models/Profile/profile.h
-    models/Room/room.h
-    models/Task/task.h
-    models/Profile/profile.cpp
-    models/Room/room.cpp
-    models/Task/task.cpp
+    models/profile/profile.h
+    models/room/room.h
+    models/task/task.h
+    models/profile/profile.cpp
+    models/room/room.cpp
+    models/task/task.cpp
+    models/config/config.h
+    models/config/config.cpp
     services/JWT/JWT_manager.h
     services/JWT/JWT_manager.cpp
-    "models/Global Status/global_status.h"
-    "models/Global Status/global_status.cpp"
-    "services/Server Connection/http_connection.h"
-    "services/Server Connection/http_connection.cpp"
-    "services/Text File Parser/text_file_parser.h"
-    "services/Text File Parser/text_file_parser.cpp"
-    "services/Data Base/data_base_manager.h"
-    "services/Data Base/data_base_manager.cpp"    
-    "services/Request Handler/request_handler.h"    
-    "services/Request Handler/request_handler.cpp"    
+    models/global-status/global_status.h
+    models/global-status/global_status.cpp
+    server/connection/http_connection.h
+    server/connection/http_connection.cpp
+    server/request-handler/request_handler.h    
+    server/request-handler/request_handler.cpp
+    services/file-parser/file_parser.h
+    services/file-parser/file_parser.cpp
+    services/data-base/data_base_manager.h
+    services/data-base/data_base_manager.cpp        
 )
 
 target_link_libraries(RestfulApi ${MYCOMPILE_FLAGS} ${Boost_LIBRARIES} cpp-jwt::cpp-jwt)

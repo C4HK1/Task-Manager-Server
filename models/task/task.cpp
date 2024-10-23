@@ -5,8 +5,7 @@
 
 #include "task.h"
 
-nlohmann::json task::to_json() const
-{
+auto task::to_json() const -> nlohmann::json {
     return {
             {"room_creator_ID", this->room_creator_ID},
             {"room_name", this->room_name},

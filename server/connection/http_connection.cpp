@@ -7,8 +7,7 @@
 #include <string>
 
 #include "http_connection.h"
-#include "../Request Handler/request_handler.h"
-#include "../Data Base/data_base_manager.h"
+#include "../request-handler/request_handler.h"
 
 http_connection::http_connection(tcp::socket socket) : socket_(std::move(socket)) {}
 
