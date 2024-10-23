@@ -3,9 +3,10 @@
 
 nlohmann::json room::to_json() const {
     return {
-            {"ID", this->creator_id},
-            {"creator_id", this->creator_id},
+            {"creator_ID", this->creator_ID},
+            {"name", this->name},
+            {"description", this->description},
+
             {"creator_name", this->creator_name},
-            {"label", this->label},
         };
 }

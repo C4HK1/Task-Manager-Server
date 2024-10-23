@@ -20,6 +20,8 @@ add_executable(RestfulApi
     models/Task/task.cpp
     services/JWT/JWT_manager.h
     services/JWT/JWT_manager.cpp
+    "models/Global Status/global_status.h"
+    "models/Global Status/global_status.cpp"
     "services/Server Connection/http_connection.h"
     "services/Server Connection/http_connection.cpp"
     "services/Text File Parser/text_file_parser.h"

@@ -2,8 +2,10 @@
 
 #include <boost/asio/ip/basic_resolver.hpp>
 #include <boost/exception/exception.hpp>
+#include <boost/mysql/datetime.hpp>
 #include <boost/mysql/error_code.hpp>
 #include <boost/mysql/error_with_diagnostics.hpp>
+#include <boost/mysql/time.hpp>
 #include <boost/url.hpp>
 #include <boost/beast/ssl.hpp>
 #include <boost/beast/core.hpp>
@@ -83,6 +85,9 @@ class data_base_manager
     auto create_rooms_table() -> void;
     auto create_profile_room_table() -> void;
     auto create_tasks_table() -> void;
+    auto create_configs_table() -> void;
+    auto create_assigneers_table() -> void;
+    auto create_viewers_table() -> void;
 
     //Data base table management part
 
@@ -106,32 +111,47 @@ public:
 
     //Profile part
 
-    auto create_profile(const std::string &name) -> DATA_BASE_EXECUTION_STATUS;
-    auto get_profile_by_ID(const u_int64_t ID, profile &profile) -> DATA_BASE_EXECUTION_STATUS;
+    auto create_profile(const std::string &name,
+                        const std::string &login,
+                        const std::string &password,
+                        const std::string &email,
+                        const std::string &phone,
+                        profile &result_profile) -> DATA_BASE_EXECUTION_STATUS;
+
+    auto get_profile_by_ID(const u_int64_t ID, profile &result_profile) -> DATA_BASE_EXECUTION_STATUS;
     auto delete_profile() -> DATA_BASE_EXECUTION_STATUS;
 
     auto login_in_profile() -> DATA_BASE_EXECUTION_STATUS;
-    auto find_profiles_with_prefix_in_name(const std::string &prefix, std::vector<profile> &profiles) -> DATA_BASE_EXECUTION_STATUS;
+    auto find_profiles_with_prefix_in_name(const std::string &prefix, std::vector<profile> &result_profiles) -> DATA_BASE_EXECUTION_STATUS;
 
     //Room part
 
-    auto create_room(const std::string &room_label, room &room) -> DATA_BASE_EXECUTION_STATUS;
-    auto get_room(const u_int64_t room_creator_ID, const std::string &room_label, room &room) -> DATA_BASE_EXECUTION_STATUS;
-    auto delete_room(const u_int64_t room_creator_ID, const std::string &room_label) -> DATA_BASE_EXECUTION_STATUS;
+    auto create_room(const std::string &room_name,
+                     const std::string &description, 
+                     room &result_room) -> DATA_BASE_EXECUTION_STATUS;
+
+    auto get_room(const u_int64_t room_creator_ID, const std::string &room_name, room &result_room) -> DATA_BASE_EXECUTION_STATUS;
+    auto delete_room(const u_int64_t room_creator_ID, const std::string &room_name) -> DATA_BASE_EXECUTION_STATUS;
     auto append_member_to_room(const u_int64_t member_ID, u_int64_t room_creator_ID, const std::string &room_label) -> DATA_BASE_EXECUTION_STATUS;
 
     //Task part
 
-    auto create_task(const u_int64_t room_creator_ID, const std::string &room_label, const std::string &task_label, task &task) -> DATA_BASE_EXECUTION_STATUS;
-    auto get_task(const u_int64_t room_creator_ID, const std::string &room_label, const std::string &task_label, task &task) -> DATA_BASE_EXECUTION_STATUS;
-    auto delete_task(const u_int64_t room_creator_ID, const std::string &room_label, const std::string &task_label) -> DATA_BASE_EXECUTION_STATUS;
+    auto create_task(const u_int64_t room_creator_ID, 
+                     const std::string &room_name,
+                     const std::string &task_name,
+                     const std::string label,
+                     const u_int64_t status,
+                     const time_t &time_to_live,
+                     task &result_task) -> DATA_BASE_EXECUTION_STATUS;
+    auto get_task(const u_int64_t room_creator_ID, const std::string &room_name, const std::string &task_name, task &result_task) -> DATA_BASE_EXECUTION_STATUS;
+    auto delete_task(const u_int64_t room_creator_ID, const std::string &room_name, const std::string &task_name) -> DATA_BASE_EXECUTION_STATUS;
 
     //Join part
 
-    auto get_profile_rooms(std::vector<room> &rooms) -> DATA_BASE_EXECUTION_STATUS;
-    auto get_profile_tasks(std::vector<task> &tasks) -> DATA_BASE_EXECUTION_STATUS;
-    auto get_room_profiles(const u_int64_t room_creator_ID, const std::string &room_label, std::vector<profile> &profiles) -> DATA_BASE_EXECUTION_STATUS;
-    auto get_room_tasks(const u_int64_t room_creator_ID, const std::string &room_label, std::vector<task> &tasks) -> DATA_BASE_EXECUTION_STATUS;
+    auto get_profile_rooms(std::vector<room> &result_rooms) -> DATA_BASE_EXECUTION_STATUS;
+    auto get_profile_tasks(std::vector<task> &result_tasks) -> DATA_BASE_EXECUTION_STATUS;
+    auto get_room_profiles(const u_int64_t room_creator_ID, const std::string &room_name, std::vector<profile> &result_profiles) -> DATA_BASE_EXECUTION_STATUS;
+    auto get_room_tasks(const u_int64_t room_creator_ID, const std::string &room_name, std::vector<task> &result_tasks) -> DATA_BASE_EXECUTION_STATUS;
 
     //Data base table management part
 

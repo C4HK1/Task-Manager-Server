@@ -13,5 +13,8 @@ struct profile {
     std::string login;
     std::string password;
 
+    std::string email;
+    std::string phone;
+
     nlohmann::json to_json() const;
 };

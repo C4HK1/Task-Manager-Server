@@ -1,9 +1,14 @@
 #include "data_base_manager.h"
+#include <boost/mysql/datetime.hpp>
 #include <iostream>
+#include <sys/types.h>
 
 int main()
 {
-    data_base_manager manager("123", "123", "0.0.0.0", "3306", "myuser", "secret", "mydatabase");
+    data_base_manager manager("1231", "123", "0.0.0.0", "3306", "myuser", "secret", "mydatabase");
+    // data_base_manager manager;
+
+    std::cout << manager.get_manager().to_json() << std::endl;
 
     std::cout << "profiles: \n";
     manager.print_tabel("profiles");
@@ -13,6 +18,12 @@ int main()
     manager.print_tabel("profile_room");
     std::cout << "tasks: \n";
     manager.print_tabel("tasks");
+    std::cout << "configs: \n";
+    manager.print_tabel("configs");
+    std::cout << "assigneers: \n";
+    manager.print_tabel("assigneers");
+    std::cout << "viewers: \n";
+    manager.print_tabel("viewers");
 
     std::cout << "=============================\n";
 
@@ -22,15 +33,16 @@ int main()
     std::vector<struct room> rooms;
     std::vector<struct task> tasks;
     std::vector<struct profile> profiles;
-    // std::cout << manager.create_profile("LENYA") << std::endl;
+
+    // std::cout << manager.create_profile("C4H91", "1231", "123", "s@mail.ru", "666", profile) << std::endl;
     // std::cout << manager.delete_profile() << std::endl;
-    // std::cout << manager.get_profile_by_ID(1, profile) << std::endl;
+    // std::cout << manager.get_profile_by_ID(2, profile) << std::endl;
     // std::cout << profile.to_json() << std::endl;
-    // std::cout << manager.create_room("room1", room) << std::endl;
+    // std::cout << manager.create_room("room1", "d", room) << std::endl;
     // std::cout << manager.delete_room(1, "room1") << std::endl;
     // std::cout << manager.get_room(1, "room1", room) << std::endl;
     // std::cout << room.to_json() << std::endl;
-    // std::cout << manager.create_task(1, "room1", "task1", task) << std::endl;
+    // std::cout  << " " << manager.create_task(1, "room1", "task1", "in action", 1, 60 * 24, task) << std::endl;
     // std::cout << manager.delete_task(1, "room1", "task1") << std::endl;
     // std::cout << manager.get_task(1, "room1", "task1", task) << std::endl;
     // std::cout << task.to_json() << std::endl;
@@ -63,6 +75,12 @@ int main()
     manager.print_tabel("profile_room");
     std::cout << "tasks: \n";
     manager.print_tabel("tasks");
+    std::cout << "configs: \n";
+    manager.print_tabel("configs");
+    std::cout << "assigneers: \n";
+    manager.print_tabel("assigneers");
+    std::cout << "viewers: \n";
+    manager.print_tabel("viewers");
 
     return 0;
 }

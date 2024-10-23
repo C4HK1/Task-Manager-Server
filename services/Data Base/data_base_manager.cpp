@@ -1,3 +1,4 @@
+#include <boost/mysql/datetime.hpp>
 #include <boost/mysql/field_view.hpp>
 #include <boost/mysql/rows_view.hpp>
 #include <iostream>
@@ -77,65 +78,164 @@ auto data_base_manager::get_manager() -> profile {
 //Table creation part
 
 auto data_base_manager::create_profiles_table() -> void {
-    conn.query(
+    try {
+        conn.query(
         R"%(
             CREATE TABLE profiles (
                 ID BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT NOT NULL UNIQUE,
-                name varchar(50) UNIQUE,
-                login varchar(50) NOT NULL UNIQUE,
-                password varchar(50) NOT NULL
+                name VARCHAR(50) UNIQUE,
+                login VARCHAR(50) NOT NULL UNIQUE,
+                password VARCHAR(50) NOT NULL,
+
+                email VARCHAR(50) NOT NULL,
+                phone VARCHAR(50)
             )
         )%", result);
+    } catch (boost::mysql::error_with_diagnostics &exception) {
+        std::cout << exception.get_diagnostics().server_message() << std::endl;
+        std::cout << exception.get_diagnostics().client_message() << std::endl;
+    }
 }
 
 auto data_base_manager::create_rooms_table() -> void {
-    conn.query(
+    try {
+        conn.query(
         R"%(
             CREATE TABLE rooms (
-                creator_ID BIGINT UNSIGNED,
-                label varchar(50) NOT NULL,
-                PRIMARY KEY (creator_ID , label),
-                FOREIGN KEY (creator_ID) REFERENCES profiles(ID)
+                creator_ID BIGINT UNSIGNED NOT NULL,
+                name VARCHAR(50) NOT NULL,
+
+                description VARCHAR(50) NOT NULL,
+
+                PRIMARY KEY (creator_ID , name)
             )
         )%", result);
+    } catch (boost::mysql::error_with_diagnostics &exception) {
+        std::cout << exception.get_diagnostics().server_message() << std::endl;
+        std::cout << exception.get_diagnostics().client_message() << std::endl;
+    }
 }
 
 auto data_base_manager::create_profile_room_table() -> void {
-    conn.query(
+    try {
+        conn.query(
         R"%(
             CREATE TABLE profile_room (
                 profile_ID BIGINT UNSIGNED NOT NULL,
-                room_ID BIGINT UNSIGNED NOT NULL,
-                PRIMARY KEY (profile_ID , room_ID),
-                FOREIGN KEY (profile_ID) REFERENCES profiles(ID),
-                FOREIGN KEY (room_ID) REFERENCES rooms(ID) ON DELETE CASCADE
+                room_creator_ID BIGINT UNSIGNED NOT NULL,
+                room_name VARCHAR(50) NOT NULL,
+
+                PRIMARY KEY (profile_ID, room_creator_ID, room_name),
+                FOREIGN KEY (profile_ID) REFERENCES profiles(ID) ON DELETE CASCADE,
+                FOREIGN KEY (room_creator_ID, room_name) REFERENCES rooms(creator_ID, name) ON DELETE CASCADE
             )
         )%", result);
+    } catch (boost::mysql::error_with_diagnostics &exception) {
+        std::cout << exception.get_diagnostics().server_message() << std::endl;
+        std::cout << exception.get_diagnostics().client_message() << std::endl;
+    }
 }
 
 auto data_base_manager::create_tasks_table() -> void {
-    conn.query(
+    try {
+        conn.query(
         R"%(
             CREATE TABLE tasks (
                 room_creator_ID BIGINT UNSIGNED NOT NULL,
-                room_label varchar(50) NOT NULL,
-                label varchar(50) NOT NULL,
+                room_name VARCHAR(50) NOT NULL,
                 creator_ID BIGINT UNSIGNED,
-                PRIMARY KEY (room_creator_ID , room_label, label),
+                name VARCHAR(50) NOT NULL,
+
+                label VARCHAR(50),
+                status BIGINT UNSIGNED,
+
+                creation_time DATETIME,
+                deadline DATETIME,
+
+                PRIMARY KEY (room_creator_ID, room_name, name),
                 FOREIGN KEY (creator_ID) REFERENCES profiles(ID) ON DELETE SET NULL,
-                FOREIGN KEY (room_ID) REFERENCES rooms(ID) ON DELETE CASCADE
+                FOREIGN KEY (room_creator_ID, room_name) REFERENCES rooms(creator_ID, name) ON DELETE CASCADE
             )
         )%", result);
+    } catch (boost::mysql::error_with_diagnostics &exception) {
+        std::cout << exception.get_diagnostics().server_message() << std::endl;
+        std::cout << exception.get_diagnostics().client_message() << std::endl;
+    }
+}
+
+auto data_base_manager::create_configs_table() -> void {
+    try {
+        conn.query(
+        R"%(
+            CREATE TABLE configs (
+                profile_ID BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT NOT NULL UNIQUE,
+                avatar VARBINARY(1024),
+                configuration VARBINARY(4096),
+
+                FOREIGN KEY (profile_ID) REFERENCES profiles(ID) ON DELETE CASCADE
+            )
+        )%", result);
+    }  catch (boost::mysql::error_with_diagnostics &exception) {
+        std::cout << exception.get_diagnostics().server_message() << std::endl;
+        std::cout << exception.get_diagnostics().client_message() << std::endl;
+    }
+}
+
+auto data_base_manager::create_assigneers_table() -> void {
+    try {
+        conn.query(
+        R"%(
+            CREATE TABLE assigneers (
+                assignee_ID BIGINT UNSIGNED NOT NULL,
+                room_creator_ID BIGINT UNSIGNED NOT NULL,
+                room_name VARCHAR(50) NOT NULL,
+                task_name VARCHAR(50) NOT NULL,
+
+                PRIMARY KEY (assignee_ID, room_creator_ID, room_name, task_name),
+                FOREIGN KEY (assignee_ID) REFERENCES profiles(ID),
+                FOREIGN KEY (room_creator_ID, room_name, task_name) REFERENCES tasks(room_creator_ID, room_name, name) ON DELETE CASCADE
+            )
+        )%", result);
+    } catch (boost::mysql::error_with_diagnostics &exception) {
+        std::cout << exception.get_diagnostics().server_message() << std::endl;
+        std::cout << exception.get_diagnostics().client_message() << std::endl;
+    }
+}
+
+auto data_base_manager::create_viewers_table() -> void {
+    try {
+        conn.query(
+        R"%(
+            CREATE TABLE viewers (
+                viewer_ID BIGINT UNSIGNED NOT NULL,
+                room_creator_ID BIGINT UNSIGNED NOT NULL,
+                room_name VARCHAR(50) NOT NULL,
+                task_name VARCHAR(50) NOT NULL,
+
+                PRIMARY KEY (viewer_ID, room_creator_ID, room_name, task_name),
+                FOREIGN KEY (viewer_ID) REFERENCES profiles(ID),
+                FOREIGN KEY (room_creator_ID, room_name, task_name) REFERENCES tasks(room_creator_ID, room_name, name) ON DELETE CASCADE
+            )
+        )%", result);
+    } catch (boost::mysql::error_with_diagnostics &exception) {
+        std::cout << exception.get_diagnostics().server_message() << std::endl;
+        std::cout << exception.get_diagnostics().client_message() << std::endl;
+    }
 }
 
 // Profile part
 
-auto data_base_manager::create_profile(const std::string &name) -> DATA_BASE_EXECUTION_STATUS {
+auto data_base_manager::create_profile(const std::string &name,
+                                       const std::string &login,
+                                       const std::string &password,
+                                       const std::string &email,
+                                       const std::string &phone,
+                                       profile &result_profile) -> DATA_BASE_EXECUTION_STATUS {
     try {
         std::stringstream request;
 
         request << "SELECT * FROM profiles WHERE login = '"
-                << this->manager.login
+                << login
                 << "'";
 
         std::cout << request.str() << std::endl;
@@ -164,12 +264,16 @@ auto data_base_manager::create_profile(const std::string &name) -> DATA_BASE_EXE
 
         request.str(std::string());
 
-        request << "INSERT INTO profiles (name, login, password) VALUES ('"
+        request << "INSERT INTO profiles (name, login, password, email, phone) VALUES ('"
                 << name 
                 << "', '"
-                << this->manager.login
+                << login
                 << "', '"
-                << this->manager.password
+                << password
+                << "', '"
+                << email
+                << "', '"
+                << phone
                 << "')";
 
         std::cout << request.str() << std::endl;
@@ -195,7 +299,11 @@ auto data_base_manager::create_profile(const std::string &name) -> DATA_BASE_EXE
 
         u_int64_t profile_ID = ID.at(0).at(0).as_uint64();
 
-        return this->get_profile_by_ID(profile_ID, this->manager);
+        auto status = this->get_profile_by_ID(profile_ID, this->manager);
+
+        result_profile = this->manager;
+
+        return status;
     } catch (boost::mysql::error_with_diagnostics &exception) {
         std::cout << exception.get_diagnostics().server_message() << std::endl;
         std::cout << exception.get_diagnostics().client_message() << std::endl;
@@ -222,6 +330,8 @@ auto data_base_manager::get_profile_by_ID(const u_int64_t ID, profile &result_pr
             result_profile.name =profile.at(0).at(1).get_string();
             result_profile.login = profile.at(0).at(2).get_string();
             result_profile.password = profile.at(0).at(3).get_string();
+            result_profile.email = profile.at(0).at(4).get_string();
+            result_profile.phone = profile.at(0).at(5).get_string();
             
             return DATA_BASE_COMPLETED_SUCCESSFULY;
         }
@@ -257,12 +367,6 @@ auto data_base_manager::delete_profile() -> DATA_BASE_EXECUTION_STATUS
 
         request.str(std::string());
 
-        request << "SET FOREIGN_KEY_CHECKS=0";
-
-        conn.execute(request.str(), result);
-
-        request.str(std::string());
-
         request << "DELETE FROM profiles WHERE login = '"
                 << this->manager.login
                 << "' AND password = '"
@@ -270,22 +374,6 @@ auto data_base_manager::delete_profile() -> DATA_BASE_EXECUTION_STATUS
                 << "'";
 
         std::cout << request.str() << std::endl;
-
-        conn.execute(request.str(), result);
-
-        request.str(std::string());
-
-        request << "DELETE FROM profile_room WHERE profile_ID = '"
-                << this->manager.ID
-                << "'";
-
-        std::cout << request.str() << std::endl;
-
-        conn.execute(request.str(), result);
-
-        request.str(std::string());
-
-        request << "SET FOREIGN_KEY_CHECKS=1";
 
         conn.execute(request.str(), result);
 
@@ -349,6 +437,8 @@ auto data_base_manager::find_profiles_with_prefix_in_name(const std::string &pre
             curr_profile.name = profile.at(1).get_string();
             curr_profile.login = profile.at(2).get_string();
             curr_profile.password = profile.at(3).get_string();
+            curr_profile.email = profile.at(4).get_string();
+            curr_profile.phone = profile.at(5).get_string();
 
             result_profiles.push_back(curr_profile);
         }
@@ -364,7 +454,7 @@ auto data_base_manager::find_profiles_with_prefix_in_name(const std::string &pre
 
 // Room part
 
-auto data_base_manager::create_room(const std::string &room_label, room &result_room) -> DATA_BASE_EXECUTION_STATUS
+auto data_base_manager::create_room(const std::string &room_name, const std::string &description, room &result_room) -> DATA_BASE_EXECUTION_STATUS
 {
     try {
         struct profile profile;
@@ -378,8 +468,8 @@ auto data_base_manager::create_room(const std::string &room_label, room &result_
 
         request << "SELECT * FROM rooms WHERE creator_ID = "
                 << this->manager.ID
-                << " AND label = '"
-                << room_label
+                << " AND name = '"
+                << room_name
                 << "'";
 
         std::cout << request.str() << std::endl;
@@ -393,10 +483,12 @@ auto data_base_manager::create_room(const std::string &room_label, room &result_
 
         request.str(std::string());
 
-        request << "INSERT INTO rooms (creator_ID, label) VALUES ("
+        request << "INSERT INTO rooms (creator_ID, name, description) VALUES ("
                 << this->manager.ID 
                 << ", '" 
-                << room_label 
+                << room_name
+                << "', '" 
+                << description
                 << "')";
 
         std::cout << request.str() << std::endl;
@@ -405,36 +497,19 @@ auto data_base_manager::create_room(const std::string &room_label, room &result_
     
         request.str(std::string());
 
-        request << "SELECT ID FROM rooms WHERE creator_ID = "
-                << this->manager.ID
-                << " AND label = '"
-                << room_label
-                << "'";
-
-        std::cout << request.str() << std::endl;
-
-        conn.query(request.str(), result);
-
-        auto ID = this->convert_data_base_response_to_matrix(result.rows());
-
-        if (!ID.size())
-            return DATA_BASE_THERE_IS_NO_ROOM_WITH_SUCH_PARAMETERS;
-
-        u_int64_t room_ID = ID.at(0).at(0).as_uint64();
-
-        request.str(std::string());
-
-        request << "INSERT INTO profile_room (profile_ID, room_ID) VALUES ("
+        request << "INSERT INTO profile_room (profile_ID, room_creator_ID, room_name) VALUES ("
                 << this->manager.ID
                 << ", "
-                << room_ID
-                << ")";
+                << this->manager.ID
+                << ", '"
+                << room_name
+                << "')";
 
         std::cout << request.str() << std::endl;
 
         conn.query(request.str(), result);
 
-        return this->get_room(this->manager.ID, room_label, result_room);
+        return this->get_room(this->manager.ID, room_name, result_room);
     } catch (boost::mysql::error_with_diagnostics &exception) {
         std::cout << exception.get_diagnostics().server_message() << std::endl;
         std::cout << exception.get_diagnostics().client_message() << std::endl;
@@ -443,15 +518,15 @@ auto data_base_manager::create_room(const std::string &room_label, room &result_
     }
 }
 
-auto data_base_manager::get_room(const u_int64_t room_creator_ID, const std::string &room_label, room &result_room) -> DATA_BASE_EXECUTION_STATUS
+auto data_base_manager::get_room(const u_int64_t room_creator_ID, const std::string &room_name, room &result_room) -> DATA_BASE_EXECUTION_STATUS
 {
     try {
         std::stringstream request;
 
         request << "SELECT * FROM rooms WHERE rooms.creator_ID = " 
                 << room_creator_ID
-                << " AND label = '"
-                << room_label
+                << " AND name = '"
+                << room_name
                 << "'";
 
         std::cout << request.str() << std::endl;
@@ -462,13 +537,15 @@ auto data_base_manager::get_room(const u_int64_t room_creator_ID, const std::str
 
         request.str(std::string());
 
-        request << "SELECT * FROM (SELECT rooms.* FROM profile_room INNER JOIN rooms ON profile_room.room_ID = rooms.ID AND profile_room.profile_ID = "
+        request << "SELECT * FROM (SELECT rooms.* FROM profile_room INNER JOIN rooms ON profile_room.room_creator_ID = rooms.creator_ID AND profile_room.room_name = rooms.name AND profile_room.profile_ID = "
                 << manager.ID
                 << ") rooms_with_access WHERE rooms_with_access.creator_ID = " 
                 << room_creator_ID
-                << " AND label = '"
-                << room_label
+                << " AND rooms_with_access.name = '"
+                << room_name
                 << "'";
+
+        std::cout << request.str() << std::endl;
 
         conn.execute(request.str(), result);
 
@@ -478,14 +555,14 @@ auto data_base_manager::get_room(const u_int64_t room_creator_ID, const std::str
             return DATA_BASE_ROOM_ACCESS_ERROR;
 
         if (room.size()) {
-            result_room.ID = room.at(0).at(0).get_uint64();
-            result_room.creator_id = room.at(0).at(1).get_uint64();
-            result_room.label = room.at(0).at(2).get_string();
+            result_room.creator_ID = room.at(0).at(0).get_uint64();
+            result_room.name = room.at(0).at(1).get_string();
+            result_room.description = room.at(0).at(2).get_string();
 
             profile creator_profile;
             std::vector<task> tasks;
 
-            auto status = this->get_profile_by_ID(result_room.creator_id, creator_profile);
+            auto status = this->get_profile_by_ID(result_room.creator_ID, creator_profile);
             
             if (status)
                 return status;
@@ -504,12 +581,12 @@ auto data_base_manager::get_room(const u_int64_t room_creator_ID, const std::str
     }
 }
 
-auto data_base_manager::delete_room(const u_int64_t room_creator_ID, const std::string &room_label) -> DATA_BASE_EXECUTION_STATUS
+auto data_base_manager::delete_room(const u_int64_t room_creator_ID, const std::string &room_name) -> DATA_BASE_EXECUTION_STATUS
 {
     try {
         room room;
         
-        auto status = this->get_room(room_creator_ID, room_label, room);
+        auto status = this->get_room(room_creator_ID, room_name, room);
 
         if (status)
             return status;
@@ -518,8 +595,8 @@ auto data_base_manager::delete_room(const u_int64_t room_creator_ID, const std::
 
         request << "DELETE FROM rooms WHERE creator_ID = "
                 << room_creator_ID
-                << " AND label = '"
-                << room_label
+                << " AND name = '"
+                << room_name
                 << "'";
 
         std::cout << request.str() << std::endl;
@@ -535,12 +612,19 @@ auto data_base_manager::delete_room(const u_int64_t room_creator_ID, const std::
     }
 }
 
-auto data_base_manager::append_member_to_room(const u_int64_t member_ID, const u_int64_t creator_ID, const std::string &room_label) -> DATA_BASE_EXECUTION_STATUS
+auto data_base_manager::append_member_to_room(const u_int64_t member_ID, const u_int64_t creator_ID, const std::string &room_name) -> DATA_BASE_EXECUTION_STATUS
 {
     try {
+        profile member;
+
+        auto status = this->get_profile_by_ID(member_ID, member);
+
+        if (status)
+            return  status;
+
         room room;
 
-        auto status = this->get_room(creator_ID, room_label, room);
+        status = this->get_room(creator_ID, room_name, room);
 
         if (status)
             return  status;
@@ -548,9 +632,11 @@ auto data_base_manager::append_member_to_room(const u_int64_t member_ID, const u
         std::stringstream request;
 
         request << "SELECT * FROM profile_room WHERE profile_ID = "
-                << member_ID 
-                << " AND room_ID = '"
-                << room.ID
+                << member.ID 
+                << " AND room_creator_ID = "
+                << room.creator_ID
+                << " AND room_name = '"
+                << room.name
                 << "'";
 
         std::cout << request.str() << std::endl;
@@ -564,11 +650,13 @@ auto data_base_manager::append_member_to_room(const u_int64_t member_ID, const u
 
         request.str(std::string());
 
-        request << "INSERT INTO profile_room (profile_ID, room_ID) VALUES ("
+        request << "INSERT INTO profile_room (profile_ID, room_creator_ID, room_name) VALUES ("
                 << member_ID
                 << ", "
-                << room.ID
-                << ")";
+                << room.creator_ID
+                << ", '"
+                << room.name
+                << "')";
 
         std::cout << request.str() << std::endl;
 
@@ -585,8 +673,13 @@ auto data_base_manager::append_member_to_room(const u_int64_t member_ID, const u
 
 // Task part
 
-auto data_base_manager::create_task(const u_int64_t room_creator_ID, const std::string &room_label, const std::string &task_label, task &result_task) -> DATA_BASE_EXECUTION_STATUS
-{
+auto data_base_manager::create_task(const u_int64_t room_creator_ID, 
+                                    const std::string &room_name,
+                                    const std::string &task_name,
+                                    const std::string label,
+                                    const u_int64_t status,
+                                    const time_t &time_to_live,
+                                    task &result_task) -> DATA_BASE_EXECUTION_STATUS{
     try {
         struct profile profile;
 
@@ -597,20 +690,20 @@ auto data_base_manager::create_task(const u_int64_t room_creator_ID, const std::
 
         room room;
         
-        status = this->get_room(room_creator_ID, room_label, room);
+        status = this->get_room(room_creator_ID, room_name, room);
 
         if (status)
             return status;
 
         std::stringstream request;
 
-        request << "SELECT * FROM tasks WHERE room_ID = "
-                << room.ID
-                << " AND label = '"
-                << task_label
+        request << "SELECT * FROM tasks WHERE room_creator_ID = "
+                << room.creator_ID
+                << " AND room_name = '"
+                << room.name
+                << "' AND name = '"
+                << task_name
                 << "'";
-
-        std::cout << request.str() << std::endl;
 
         conn.execute(request.str(), result);
         
@@ -621,19 +714,44 @@ auto data_base_manager::create_task(const u_int64_t room_creator_ID, const std::
         
         request.str(std::string());
 
-        request << "INSERT INTO tasks (room_ID, label, creator_ID) VALUES ("
-                << room.ID
+        boost::mysql::datetime creation_time = boost::mysql::datetime::now();
+        
+        auto deadline_time_t = std::chrono::system_clock::to_time_t(creation_time.as_time_point() + std::chrono::minutes(time_to_live));
+
+        auto deadline_tm = std::localtime(&deadline_time_t);
+
+        boost::mysql::datetime deadline = {static_cast<uint16_t>(deadline_tm->tm_year),
+                                                    static_cast<uint8_t>(deadline_tm->tm_mon),
+                                                    static_cast<uint8_t>(deadline_tm->tm_mday),
+                                                    static_cast<uint8_t>(deadline_tm->tm_hour),
+                                                    static_cast<uint8_t>(deadline_tm->tm_min),
+                                                    static_cast<uint8_t>(deadline_tm->tm_sec),
+                                                    static_cast<uint32_t>(0)};
+
+
+        request << "INSERT INTO tasks (room_creator_ID, room_name, creator_ID, name, label, status, creation_time, deadline) VALUES ("
+                << room.creator_ID
                 << ", '"
-                << task_label
+                << room.name
                 << "', "
                 << this->manager.ID
-                << ")";
+                << ", '"
+                << task_name
+                << "', '"
+                << label
+                << "', "
+                << status
+                << ", '"
+                << creation_time
+                << "', '"
+                << deadline
+                << "')";
 
         std::cout << request.str() << std::endl;
 
         conn.query(request.str(), result);
 
-        return this->get_task(room_creator_ID, room_label, task_label, result_task);
+        return this->get_task(room_creator_ID, room_name, task_name, result_task);
     } catch (boost::mysql::error_with_diagnostics &exception) {
         std::cout << exception.get_diagnostics().server_message() << std::endl;
         std::cout << exception.get_diagnostics().client_message() << std::endl;
@@ -642,22 +760,24 @@ auto data_base_manager::create_task(const u_int64_t room_creator_ID, const std::
     }
 }
 
-auto data_base_manager::get_task(const u_int64_t room_creator_ID, const std::string &room_label, const std::string &task_label, task &result_task) -> DATA_BASE_EXECUTION_STATUS
+auto data_base_manager::get_task(const u_int64_t room_creator_ID, const std::string &room_name, const std::string &task_name, task &result_task) -> DATA_BASE_EXECUTION_STATUS
 {
     try {
         room room;
     
-        auto status = this->get_room(room_creator_ID, room_label, room);
+        auto status = this->get_room(room_creator_ID, room_name, room);
 
         if (status)
             return status;
 
         std::stringstream request;
 
-        request << "SELECT * FROM tasks WHERE room_ID = "
-                << room.ID
-                << " AND label = '"
-                << task_label
+        request << "SELECT * FROM tasks WHERE room_creator_ID = "
+                << room.creator_ID
+                << " AND room_name = '"
+                << room.name
+                << "' AND name = '"
+                << task_name
                 << "'";
 
         std::cout << request.str() << std::endl;
@@ -667,14 +787,18 @@ auto data_base_manager::get_task(const u_int64_t room_creator_ID, const std::str
         auto task = this->convert_data_base_response_to_matrix(result.rows());
 
         if (task.size()) {
-            result_task.ID = task.at(0).at(0).get_uint64();
-            result_task.room_id = task.at(0).at(1).get_uint64();
-            result_task.label = task.at(0).at(2).get_string();
-            result_task.creator_id = task.at(0).at(3).get_uint64();
+            result_task.room_creator_ID = task.at(0).at(0).get_uint64();
+            result_task.room_name = task.at(0).at(1).get_string();
+            result_task.creator_ID = task.at(0).at(2).get_uint64();
+            result_task.name = task.at(0).at(3).get_string();
+            result_task.label = task.at(0).at(4).get_string();
+            result_task.status = task.at(0).at(5).get_uint64();
+            result_task.creation_time = task.at(0).at(6).get_datetime();
+            result_task.deadline = task.at(0).at(7).get_datetime();
 
             profile task_creator;
 
-            status = this->get_profile_by_ID(result_task.creator_id, task_creator);
+            status = this->get_profile_by_ID(result_task.creator_ID, task_creator);
 
             if (status)
                 return status;
@@ -694,22 +818,24 @@ auto data_base_manager::get_task(const u_int64_t room_creator_ID, const std::str
 }
 
 
-auto data_base_manager::delete_task(const u_int64_t room_creator_ID, const std::string &room_label, const std::string &task_label) -> DATA_BASE_EXECUTION_STATUS
+auto data_base_manager::delete_task(const u_int64_t room_creator_ID, const std::string &room_name, const std::string &task_name) -> DATA_BASE_EXECUTION_STATUS
 {
     try {
         room room;
         
-        auto status = this->get_room(room_creator_ID, room_label, room);
+        auto status = this->get_room(room_creator_ID, room_name, room);
 
         if (status)
             return status;
 
         std::stringstream request;
 
-        request << "SELECT * FROM tasks WHERE room_ID = "
-                << room.ID
-                << " AND label = '" 
-                << task_label
+        request << "SELECT * FROM tasks WHERE room_creator_ID = "
+                << room.creator_ID
+                << " AND room_name = '" 
+                << room.name
+                << "' AND name = '" 
+                << task_name
                 << "'";
 
         std::cout << request.str() << std::endl;
@@ -723,10 +849,12 @@ auto data_base_manager::delete_task(const u_int64_t room_creator_ID, const std::
 
         request.str(std::string());
 
-        request << "DELETE FROM tasks WHERE room_ID = "
-                << room.ID
-                << " AND label = '"
-                << task_label
+        request << "DELETE FROM tasks WHERE room_creator_ID = "
+                << room.creator_ID
+                << " AND room_name = '"
+                << room.name
+                << "' AND name = '"
+                << task_name
                 << "'";
 
         std::cout << request.str() << std::endl;
@@ -749,7 +877,7 @@ auto data_base_manager::get_profile_rooms(std::vector<room> &result_rooms) -> DA
     try {
         std::stringstream request;
 
-        request << "SELECT rooms.* FROM profile_room INNER JOIN rooms ON profile_room.room_ID = rooms.ID AND profile_room.profile_ID = "
+        request << "SELECT rooms.* FROM profile_room INNER JOIN rooms ON profile_room.room_creator_ID = rooms.creator_ID AND profile_room.room_name = rooms.name AND profile_room.profile_ID = "
                 << manager.ID;
                 
         conn.execute(request.str(), result);
@@ -759,13 +887,13 @@ auto data_base_manager::get_profile_rooms(std::vector<room> &result_rooms) -> DA
         for (auto room : rooms) {
             struct room curr_room;
 
-            curr_room.ID = room.at(0).get_uint64();
-            curr_room.creator_id = room.at(1).get_uint64();
-            curr_room.label = room.at(2).get_string();
+            curr_room.creator_ID = room.at(0).get_uint64();
+            curr_room.name = room.at(1).get_string();
+            curr_room.description = room.at(2).get_string();
 
             struct profile room_creator;
 
-            auto status = this->get_profile_by_ID(curr_room.creator_id, room_creator);
+            auto status = this->get_profile_by_ID(curr_room.creator_ID, room_creator);
 
             if (status)
                 return status;
@@ -789,9 +917,9 @@ auto data_base_manager::get_profile_tasks(std::vector<task> &result_tasks) -> DA
     try {
         std::stringstream request;
 
-        request << "SELECT tasks.* FROM tasks INNER JOIN (SELECT profile_room.room_ID FROM profile_room INNER JOIN rooms ON profile_room.room_ID = rooms.ID AND profile_room.profile_ID = "
+        request << "SELECT tasks.* FROM tasks INNER JOIN (SELECT profile_room.room_creator_ID, profile_room.room_name FROM profile_room INNER JOIN rooms ON profile_room.room_creator_ID = rooms.creator_ID AND profile_room.room_name = rooms.name AND profile_room.profile_ID = "
                 << manager.ID
-                << ") rooms_with_access ON rooms_with_access.room_ID = tasks.room_ID";
+                << ") rooms_with_access ON rooms_with_access.room_creator_ID = tasks.room_creator_ID AND rooms_with_access.room_name = tasks.room_name";
 
         conn.execute(request.str(), result);
 
@@ -800,14 +928,18 @@ auto data_base_manager::get_profile_tasks(std::vector<task> &result_tasks) -> DA
         for (auto task : tasks) {
             struct task curr_task;
 
-            curr_task.ID = task.at(0).get_uint64();
-            curr_task.room_id = task.at(1).get_uint64();
-            curr_task.label = task.at(2).get_string();
-            curr_task.creator_id = task.at(3).get_uint64();
+            curr_task.room_creator_ID = task.at(0).get_uint64();
+            curr_task.room_name = task.at(1).get_string();
+            curr_task.creator_ID = task.at(2).get_uint64();
+            curr_task.name = task.at(3).get_string();
+            curr_task.label = task.at(4).get_string();
+            curr_task.status = task.at(5).get_uint64();
+            curr_task.creation_time = task.at(6).get_datetime();
+            curr_task.deadline = task.at(7).get_datetime();
 
             struct profile task_creator;
 
-            auto status = this->get_profile_by_ID(curr_task.creator_id, task_creator);
+            auto status = this->get_profile_by_ID(curr_task.creator_ID, task_creator);
 
             if (status)
                 return status;
@@ -826,12 +958,12 @@ auto data_base_manager::get_profile_tasks(std::vector<task> &result_tasks) -> DA
     }
 }
 
-auto data_base_manager::get_room_profiles(const u_int64_t room_creator_ID, const std::string &room_label, std::vector<profile> &result_profiles) -> DATA_BASE_EXECUTION_STATUS
+auto data_base_manager::get_room_profiles(const u_int64_t room_creator_ID, const std::string &room_name, std::vector<profile> &result_profiles) -> DATA_BASE_EXECUTION_STATUS
 {
     try {
         struct room room;
 
-        auto status = this->get_room(room_creator_ID, room_label, room);
+        auto status = this->get_room(room_creator_ID, room_name, room);
 
         if (status)
             return status;
@@ -840,8 +972,13 @@ auto data_base_manager::get_room_profiles(const u_int64_t room_creator_ID, const
 
         request << "SELECT profiles.* FROM (SELECT * FROM profile_room WHERE profile_ID = "
                 << this->manager.ID
-                << ") profile_room_with_access INNER JOIN profiles ON profile_room_with_access.profile_ID = profiles.ID AND profile_room_with_access.room_ID = "
-                << room.ID;
+                << ") profile_room_with_access INNER JOIN profiles ON profile_room_with_access.profile_ID = profiles.ID AND profile_room_with_access.room_creator_ID = "
+                << room.creator_ID
+                << " AND profile_room_with_access.room_name = '"
+                << room.name
+                << "'";
+
+        std::cout << request.str() << std::endl;
 
         conn.execute(request.str(), result);
 
@@ -854,6 +991,8 @@ auto data_base_manager::get_room_profiles(const u_int64_t room_creator_ID, const
             curr_profile.name = profile.at(1).get_string();
             curr_profile.login = profile.at(2).get_string();
             curr_profile.password = profile.at(3).get_string();
+            curr_profile.email = profile.at(4).get_string();
+            curr_profile.phone = profile.at(5).get_string();
             
             result_profiles.push_back(curr_profile);
         }
@@ -867,22 +1006,27 @@ auto data_base_manager::get_room_profiles(const u_int64_t room_creator_ID, const
     }
 }
 
-auto data_base_manager::get_room_tasks(const u_int64_t room_creator_ID, const std::string &room_label, std::vector<task> &result_tasks) -> DATA_BASE_EXECUTION_STATUS
+auto data_base_manager::get_room_tasks(const u_int64_t room_creator_ID, const std::string &room_name, std::vector<task> &result_tasks) -> DATA_BASE_EXECUTION_STATUS
 {
     try {
         room room;
 
-        auto status = this->get_room(room_creator_ID, room_label, room);
+        auto status = this->get_room(room_creator_ID, room_name, room);
 
         if (status)
             return status;
 
         std::stringstream request;
 
-        request << "SELECT tasks.* FROM tasks INNER JOIN (SELECT rooms.ID FROM profile_room INNER JOIN rooms ON profile_room.room_ID = rooms.ID AND profile_room.profile_ID = "
+        request << "SELECT tasks.* FROM tasks INNER JOIN (SELECT rooms.creator_ID, rooms.name FROM profile_room INNER JOIN rooms ON profile_room.room_creator_ID = rooms.creator_ID AND profile_room.room_name = rooms.name AND profile_room.profile_ID = "
                 << manager.ID
-                << ") rooms_with_access ON tasks.room_ID = rooms_with_access.ID AND rooms_with_access.ID = "
-                << room.ID;
+                << ") rooms_with_access ON tasks.room_creator_ID = rooms_with_access.creator_ID AND tasks.room_name = rooms_with_access.name AND rooms_with_access.creator_ID = "
+                << room.creator_ID
+                << " AND rooms_with_access.name = '"
+                << room.name
+                << "'";
+
+        std::cout << request.str() << std::endl;
 
         conn.execute(request.str(), result);
 
@@ -891,14 +1035,18 @@ auto data_base_manager::get_room_tasks(const u_int64_t room_creator_ID, const st
         for (auto task : tasks) {
             struct task curr_task;
             
-            curr_task.ID = task.at(0).get_uint64();
-            curr_task.room_id = task.at(1).get_uint64();
-            curr_task.label = task.at(2).get_string();
-            curr_task.creator_id = task.at(3).get_uint64();
+            curr_task.room_creator_ID = task.at(0).get_uint64();
+            curr_task.room_name = task.at(1).get_string();
+            curr_task.creator_ID = task.at(2).get_uint64();
+            curr_task.name = task.at(3).get_string();
+            curr_task.label = task.at(4).get_string();
+            curr_task.status = task.at(5).get_uint64();
+            curr_task.creation_time = task.at(6).get_datetime();
+            curr_task.deadline = task.at(7).get_datetime();
 
             struct profile task_creator;
 
-            status = this->get_profile_by_ID(curr_task.creator_id, task_creator);
+            status = this->get_profile_by_ID(curr_task.creator_ID, task_creator);
 
             if (status)
                 return status;
@@ -1032,5 +1180,53 @@ auto data_base_manager::update_tables() -> void
         conn.query(request.str(), result);
     } catch (boost::mysql::error_with_diagnostics &exception) {
         this->create_tasks_table();
+    }
+
+    try {
+        std::stringstream request;
+
+        request << "SELECT * FROM tasks";
+
+        std::cout << request.str() << std::endl;
+
+        conn.query(request.str(), result);
+    } catch (boost::mysql::error_with_diagnostics &exception) {
+        this->create_tasks_table();
+    }
+
+    try {
+        std::stringstream request;
+
+        request << "SELECT * FROM configs";
+
+        std::cout << request.str() << std::endl;
+
+        conn.query(request.str(), result);
+    } catch (boost::mysql::error_with_diagnostics &exception) {
+        this->create_configs_table();
+    }
+
+    try {
+        std::stringstream request;
+
+        request << "SELECT * FROM assigneers";
+
+        std::cout << request.str() << std::endl;
+
+        conn.query(request.str(), result);
+    } catch (boost::mysql::error_with_diagnostics &exception) {
+        this->create_assigneers_table();
+    }
+
+    try {
+        std::stringstream request;
+
+        request << "SELECT * FROM viewers";
+
+        std::cout << request.str() << std::endl;
+
+        conn.query(request.str(), result);
+    } catch (boost::mysql::error_with_diagnostics &exception) {
+        this->create_viewers_table();
     }
 }
