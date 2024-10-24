@@ -12,6 +12,7 @@
 #include <iostream>
 #include <vector>
 
+#include "../../models/global-status/global_status.h"
 #include "../../services/JWT/JWT_manager.h"
 #include "../../services/data-base/data_base_manager.h"
 
@@ -30,8 +31,7 @@ class request_handler {
     JWT_manager jwt;
     data_base_manager *data_base;
 
-    DATA_BASE_EXECUTION_STATUS data_base_status;
-    JWT_EXECUTION_STATUS jwt_status;
+    gloabl_status status;
 public:
     request_handler(http::request<http::dynamic_body> &request, http::response<http::dynamic_body> &response);
     ~request_handler();

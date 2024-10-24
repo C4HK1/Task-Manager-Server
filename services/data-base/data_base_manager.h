@@ -129,8 +129,8 @@ public:
             const std::string &email,
             const std::string &phone,
             profile &result_profile) -> DATA_BASE_EXECUTION_STATUS;
-    
-    auto update_profile_config(char avatar[], char configuration[]) -> DATA_BASE_EXECUTION_STATUS;
+
+    auto update_profile_config(const char *avatar, const char *configuration) -> DATA_BASE_EXECUTION_STATUS;
 
     auto get_profile_by_ID(
             const u_int64_t profile_ID, 
@@ -138,9 +138,9 @@ public:
 
     auto get_profile_config(config &result_config) -> DATA_BASE_EXECUTION_STATUS;
         
-    auto get_profile_assign_tasks(std::vector<task> &result_tasks) -> DATA_BASE_EXECUTION_STATUS;
+    auto get_profile_assigned_tasks(std::vector<task> &result_tasks) -> DATA_BASE_EXECUTION_STATUS;
 
-    auto get_profile_review_tasks(std::vector<task> &result_tasks) -> DATA_BASE_EXECUTION_STATUS;
+    auto get_profile_reviewed_tasks(std::vector<task> &result_tasks) -> DATA_BASE_EXECUTION_STATUS;
     
     auto delete_profile() -> DATA_BASE_EXECUTION_STATUS;
 
@@ -169,7 +169,7 @@ public:
     auto append_member_to_room(
             const u_int64_t member_ID, 
             u_int64_t room_creator_ID, 
-            const std::string &room_label) -> DATA_BASE_EXECUTION_STATUS;
+            const std::string &room_name) -> DATA_BASE_EXECUTION_STATUS;
 
     //Task part
 
@@ -248,4 +248,6 @@ public:
     //Data base table management part
 
     auto print_tabel(const std::string &name) -> void;
+
+    auto drop_tables() -> void;
 };

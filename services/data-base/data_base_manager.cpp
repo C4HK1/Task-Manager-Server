@@ -57,16 +57,13 @@ data_base_manager::data_base_manager(
         if (profile.size()) {
             this->manager.ID = profile.at(0).at(0).get_uint64();
             this->manager.name = profile.at(0).at(1).get_string();
+            this->manager.email = profile.at(0).at(4).get_string();
+            this->manager.phone = profile.at(0).at(5).get_string();
         }
     } catch(boost::mysql::error_with_diagnostics &exception) {
         std::cout << exception.get_diagnostics().server_message() << std::endl;
         std::cout << exception.get_diagnostics().client_message() << std::endl;
     }
-
-    // drop_table("profiles");
-    // drop_table("rooms");
-    // drop_table("profile_room");
-    // drop_table("tasks");
 }
 
 data_base_manager::~data_base_manager() {
@@ -366,7 +363,7 @@ auto data_base_manager::get_profile_by_ID(
     }
 }
 
-auto data_base_manager::update_profile_config(char avatar[], char configuration[]) -> DATA_BASE_EXECUTION_STATUS {
+auto data_base_manager::update_profile_config(const char *avatar, const char *configuration) -> DATA_BASE_EXECUTION_STATUS {
     try {
         config config;
 
@@ -419,8 +416,11 @@ auto data_base_manager::get_profile_config(config &result_config) -> DATA_BASE_E
         auto config = this->convert_data_base_response_to_matrix(result.rows());
 
         if (config.size()) {
-            result_config.avatar = config.at(0).at(1).get_string();
-            result_config.configuration = config.at(0).at(2).get_string();
+            auto avatar = config.at(0).at(1).as_blob();
+            auto configuration = config.at(0).at(2).as_blob();
+
+            result_config.avatar = std::string(avatar.begin(), avatar.end());
+            result_config.configuration = std::string(configuration.begin(), configuration.end());
 
             return DATA_BASE_COMPLETED_SUCCESSFULY;
         }
@@ -434,7 +434,7 @@ auto data_base_manager::get_profile_config(config &result_config) -> DATA_BASE_E
     }
 }
         
-auto data_base_manager::get_profile_assign_tasks(std::vector<task> &result_tasks) -> DATA_BASE_EXECUTION_STATUS {
+auto data_base_manager::get_profile_assigned_tasks(std::vector<task> &result_tasks) -> DATA_BASE_EXECUTION_STATUS {
     try {
         profile profile;
 
@@ -446,7 +446,7 @@ auto data_base_manager::get_profile_assign_tasks(std::vector<task> &result_tasks
         
         std::stringstream request;
 
-        request << "SELECT tasks.* FROM (SELECT * FROM assignees WHERE profile_ID = "
+        request << "SELECT tasks.* FROM (SELECT * FROM assignees WHERE assignee_ID = "
                 << this->manager.ID
                 << ") assignees_with_access INNER JOIN tasks ON assignees_with_access.room_creator_ID = tasks.room_creator_ID  AND assignees_with_access.room_name = tasks.room_name AND assignees_with_access.task_name = tasks.name";
 
@@ -489,7 +489,7 @@ auto data_base_manager::get_profile_assign_tasks(std::vector<task> &result_tasks
     }
 }
 
-auto data_base_manager::get_profile_review_tasks(std::vector<task> &result_tasks) -> DATA_BASE_EXECUTION_STATUS {
+auto data_base_manager::get_profile_reviewed_tasks(std::vector<task> &result_tasks) -> DATA_BASE_EXECUTION_STATUS {
     try {
         profile profile;
 
@@ -497,11 +497,10 @@ auto data_base_manager::get_profile_review_tasks(std::vector<task> &result_tasks
 
         if (status)
             return status;
-
         
         std::stringstream request;
 
-        request << "SELECT tasks.* FROM (SELECT * FROM reviewers WHERE profile_ID = "
+        request << "SELECT tasks.* FROM (SELECT * FROM reviewers WHERE reviewer_ID = "
                 << this->manager.ID
                 << ") reviewers_with_access INNER JOIN tasks ON reviewers_with_access.room_creator_ID = tasks.room_creator_ID  AND reviewers_with_access.room_name = tasks.room_name AND reviewers_with_access.task_name = tasks.name";
 
@@ -1020,7 +1019,7 @@ auto data_base_manager::add_task_to_assignee(
                 << task.room_name
                 << "', '"
                 << task.name
-                << "'";
+                << "')";
 
         std::cout << request.str() << std::endl;
 
@@ -1086,7 +1085,7 @@ auto data_base_manager::add_task_to_reviewer(
                 << task.room_name
                 << "', '"
                 << task.name
-                << "'";
+                << "')";
 
         std::cout << request.str() << std::endl;
 
@@ -1421,8 +1420,8 @@ auto data_base_manager::remove_task_from_reviewer(
 
         auto reviewers = this->convert_data_base_response_to_matrix(result.rows());
 
-        if (reviewers.size())
-            return DATA_BASE_THIS_PROFILE_IS_ALREADY_REVIEW_THIS_TASK;
+        if (!reviewers.size())
+            return DATA_BASE_THIS_ID_IS_NOT_REVIEW_THIS_TASK;
 
         request.str(std::string());
 
@@ -1815,4 +1814,14 @@ auto data_base_manager::update_tables() -> void {
     } catch (boost::mysql::error_with_diagnostics &exception) {
         this->create_reviewers_table();
     }
+}
+
+auto data_base_manager::drop_tables() -> void {
+    drop_table("profiles");
+    drop_table("rooms");
+    drop_table("profile_room");
+    drop_table("tasks");
+    drop_table("configs");
+    drop_table("assignees");
+    drop_table("reviewers");
 }
