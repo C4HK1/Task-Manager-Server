@@ -25,13 +25,8 @@ class request_handler {
 
     json_t request_data;
 
-    std::string login;
-    std::string password;
-
     JWT_manager jwt;
     data_base_manager *data_base;
-
-    gloabl_status status;
 public:
     request_handler(http::request<http::dynamic_body> &request, http::response<http::dynamic_body> &response);
     ~request_handler();

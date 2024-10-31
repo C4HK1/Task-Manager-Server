@@ -17,4 +17,5 @@ struct profile {
     std::string phone;
 
     auto to_json() const -> nlohmann::json;
+    auto to_public_json() const -> nlohmann::json;
 };

@@ -2,6 +2,8 @@
 #include <string>
 #include <sys/types.h>
 #include <time.h>
+#include "../../models/global-status/global_status.h"
+#include <iostream>
 
 #include "JWT_manager.h"
 #include "../file-parser/file_parser.h"
@@ -9,8 +11,10 @@
 extern constexpr u_int64_t TIME_TO_LIVE = 60 * 60 * 24 * 7;
 
 JWT_manager::JWT_manager(const std::string &public_key_path, const std::string &private_key_path) {
-    file_parser::read_file_to_string(private_key_path, public_key_);
-    file_parser::read_file_to_string(private_key_path, private_key_);
+    auto private_key_reading_status = file_parser::read_text_file_to_string(private_key_path, private_key_);
+    auto public_key_reading_status = file_parser::read_text_file_to_string(public_key_path, public_key_);
+
+    global_status::file_parse_status = std::max(private_key_reading_status, public_key_reading_status);
 }
 
 auto JWT_manager::validate_jwt_token(http::request<http::dynamic_body> request, json_t &result_data) -> JWT_EXECUTION_STATUS {

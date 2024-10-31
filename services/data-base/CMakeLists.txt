@@ -20,6 +20,8 @@ add_executable(DataBase
     ../../models/task/task.cpp
     ../../models/config/config.h
     ../../models/config/config.cpp
+    ../../models/timer/timer.cpp
+    ../../models/timer/timer.cpp
 )
 
 target_link_libraries(DataBase ${Boost_LIBRARIES} cpp-jwt::cpp-jwt)

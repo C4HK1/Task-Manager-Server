@@ -12,6 +12,8 @@ struct task {
     u_int64_t creator_ID = 0;
     std::string name;
 
+    std::string description;
+
     std::string label;
     u_int64_t status = 0;
 

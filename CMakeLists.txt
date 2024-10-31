@@ -20,6 +20,8 @@ add_executable(RestfulApi
     models/task/task.cpp
     models/config/config.h
     models/config/config.cpp
+    models/timer/timer.h
+    models/timer/timer.cpp
     services/JWT/JWT_manager.h
     services/JWT/JWT_manager.cpp
     models/global-status/global_status.h

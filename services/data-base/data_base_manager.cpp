@@ -145,6 +145,8 @@ auto data_base_manager::create_tasks_table() -> void {
                 creator_ID BIGINT UNSIGNED,
                 name VARCHAR(50) NOT NULL,
 
+                description VARCHAR(1024),
+
                 label VARCHAR(50),
                 status BIGINT UNSIGNED,
 
@@ -283,9 +285,9 @@ auto data_base_manager::create_profile(
         request.str(std::string());
 
         request << "SELECT ID FROM profiles WHERE login = '"
-                << this->manager.login
+                << login
                 << "' AND password = '"
-                << this->manager.password
+                << password
                 << "'";
 
         std::cout << request.str() << std::endl;
@@ -463,10 +465,11 @@ auto data_base_manager::get_profile_assigned_tasks(std::vector<task> &result_tas
             curr_task.room_name = task.at(1).get_string();
             curr_task.creator_ID = task.at(2).get_uint64();
             curr_task.name = task.at(3).get_string();
-            curr_task.label = task.at(4).get_string();
-            curr_task.status = task.at(5).get_uint64();
-            curr_task.creation_time = task.at(6).get_datetime();
-            curr_task.deadline = task.at(7).get_datetime();
+            curr_task.description = task.at(4).get_string();
+            curr_task.label = task.at(5).get_string();
+            curr_task.status = task.at(6).get_uint64();
+            curr_task.creation_time = task.at(7).get_datetime();
+            curr_task.deadline = task.at(8).get_datetime();
 
             struct profile task_creator;
 
@@ -517,10 +520,11 @@ auto data_base_manager::get_profile_reviewed_tasks(std::vector<task> &result_tas
             curr_task.room_name = task.at(1).get_string();
             curr_task.creator_ID = task.at(2).get_uint64();
             curr_task.name = task.at(3).get_string();
-            curr_task.label = task.at(4).get_string();
-            curr_task.status = task.at(5).get_uint64();
-            curr_task.creation_time = task.at(6).get_datetime();
-            curr_task.deadline = task.at(7).get_datetime();
+            curr_task.description = task.at(4).get_string();
+            curr_task.label = task.at(5).get_string();
+            curr_task.status = task.at(6).get_uint64();
+            curr_task.creation_time = task.at(7).get_datetime();
+            curr_task.deadline = task.at(8).get_datetime();
 
             struct profile task_creator;
 
@@ -584,25 +588,32 @@ auto data_base_manager::delete_profile() -> DATA_BASE_EXECUTION_STATUS
     }
 }
 
-auto data_base_manager::login_in_profile() -> DATA_BASE_EXECUTION_STATUS
+auto data_base_manager::loggin_profile(const std::string &login, const std::string &password) -> DATA_BASE_EXECUTION_STATUS
 {
     try {     
         std::stringstream request;
         
         request << "SELECT * FROM profiles WHERE login = '"
-                << this->manager.login
+                << login
                 << "' AND password = '"
-                << this->manager.password
+                << password
                 << "'";
 
         std::cout << request.str() << std::endl;
 
         conn.execute(request.str(), result);
 
-        auto profile = this->convert_data_base_response_to_matrix(result.rows());
+        auto profiles = this->convert_data_base_response_to_matrix(result.rows());
 
-        if (profile.size())
+        for (auto profile : profiles) {
+            this->manager.ID = profile.at(0).get_uint64();
+            this->manager.name = profile.at(1).get_string();
+            this->manager.login = profile.at(2).get_string();
+            this->manager.password = profile.at(3).get_string();
+            this->manager.email = profile.at(4).get_string();
+            this->manager.phone = profile.at(5).get_string();
             return DATA_BASE_COMPLETED_SUCCESSFULY;
+        }
 
         return DATA_BASE_THERE_IS_NO_PROFILE_WITH_SUCH_LOGIN_AND_PASSWORD;
     } catch (boost::mysql::error_with_diagnostics &exception) {
@@ -613,7 +624,11 @@ auto data_base_manager::login_in_profile() -> DATA_BASE_EXECUTION_STATUS
     }
 }
 
-auto data_base_manager::find_profiles_with_prefix_in_name(
+auto data_base_manager::profile_authenticate() -> DATA_BASE_EXECUTION_STATUS {
+    return this->loggin_profile(this->manager.login, this->manager.password);
+}
+
+auto data_base_manager::get_profiles_with_prefix_in_name(
         const std::string &prefix, 
         std::vector<profile> &result_profiles) -> DATA_BASE_EXECUTION_STATUS {
     try {
@@ -883,7 +898,8 @@ auto data_base_manager::create_task(
         const u_int64_t room_creator_ID, 
         const std::string &room_name,
         const std::string &task_name,
-        const std::string label,
+        const std::string &description,
+        const std::string &label,
         const u_int64_t status,
         const time_t &time_to_live,
         task &result_task) -> DATA_BASE_EXECUTION_STATUS {
@@ -919,39 +935,28 @@ auto data_base_manager::create_task(
         if (tasks.size())
             return DATA_BASE_TASK_WITH_SUCH_PARAMETERS_IS_ALREADY_EXIST;
         
+        timer task_creation_timer(time_to_live);
+
         request.str(std::string());
 
-        boost::mysql::datetime creation_time = boost::mysql::datetime::now();
-        
-        auto deadline_time_t = std::chrono::system_clock::to_time_t(creation_time.as_time_point() + std::chrono::minutes(time_to_live));
-
-        auto deadline_tm = std::localtime(&deadline_time_t);
-
-        boost::mysql::datetime deadline = {
-            static_cast<uint16_t>(deadline_tm->tm_year),
-            static_cast<uint8_t>(deadline_tm->tm_mon),
-            static_cast<uint8_t>(deadline_tm->tm_mday),
-            static_cast<uint8_t>(deadline_tm->tm_hour),
-            static_cast<uint8_t>(deadline_tm->tm_min),
-            static_cast<uint8_t>(deadline_tm->tm_sec),
-            static_cast<uint32_t>(0)};
-
-        request << "INSERT INTO tasks (room_creator_ID, room_name, creator_ID, name, label, status, creation_time, deadline) VALUES ("
+        request << "INSERT INTO tasks (room_creator_ID, room_name, creator_ID, description, name, label, status, creation_time, deadline) VALUES ("
                 << room.creator_ID
                 << ", '"
                 << room.name
                 << "', "
                 << this->manager.ID
                 << ", '"
+                << description
+                << "', '"
                 << task_name
                 << "', '"
                 << label
                 << "', "
                 << status
                 << ", '"
-                << creation_time
+                << task_creation_timer.creation_time
                 << "', '"
-                << deadline
+                << task_creation_timer.deadline
                 << "')";
 
         std::cout << request.str() << std::endl;
@@ -969,10 +974,10 @@ auto data_base_manager::create_task(
 
 
 auto data_base_manager::add_task_to_assignee(
-        const u_int64_t assignee_ID,
         const u_int64_t room_creator_ID,
         const std::string &room_name,
-        const std::string &task_name) -> DATA_BASE_EXECUTION_STATUS {
+        const std::string &task_name,
+        const u_int64_t assignee_ID) -> DATA_BASE_EXECUTION_STATUS {
     try {
         profile assignee;
 
@@ -1035,10 +1040,10 @@ auto data_base_manager::add_task_to_assignee(
 }
 
 auto data_base_manager::add_task_to_reviewer(
-        const u_int64_t reviewer_ID,
         const u_int64_t room_creator_ID,
         const std::string &room_name,
-        const std::string &task_name) -> DATA_BASE_EXECUTION_STATUS {
+        const std::string &task_name,
+        const u_int64_t reviewer_ID) -> DATA_BASE_EXECUTION_STATUS {
     try {
         profile reviewer;
 
@@ -1134,10 +1139,11 @@ auto data_base_manager::get_task(
             result_task.room_name = task.at(0).at(1).get_string();
             result_task.creator_ID = task.at(0).at(2).get_uint64();
             result_task.name = task.at(0).at(3).get_string();
-            result_task.label = task.at(0).at(4).get_string();
-            result_task.status = task.at(0).at(5).get_uint64();
-            result_task.creation_time = task.at(0).at(6).get_datetime();
-            result_task.deadline = task.at(0).at(7).get_datetime();
+            result_task.description = task.at(0).at(4).get_string();
+            result_task.label = task.at(0).at(5).get_string();
+            result_task.status = task.at(0).at(6).get_uint64();
+            result_task.creation_time = task.at(0).at(7).get_datetime();
+            result_task.deadline = task.at(0).at(8).get_datetime();
 
             profile task_creator;
 
@@ -1317,10 +1323,10 @@ auto data_base_manager::delete_task(
 }
     
 auto data_base_manager::remove_task_from_assignee(
-        const u_int64_t assignee_ID,
         const u_int64_t room_creator_ID,
         const std::string &room_name,
-        const std::string &task_name) -> DATA_BASE_EXECUTION_STATUS {
+        const std::string &task_name,
+        const u_int64_t assignee_ID) -> DATA_BASE_EXECUTION_STATUS {
     try {
         profile assignee;
 
@@ -1383,10 +1389,10 @@ auto data_base_manager::remove_task_from_assignee(
 }
 
 auto data_base_manager::remove_task_from_reviewer(
-        const u_int64_t reviewer_ID,
         const u_int64_t room_creator_ID,
         const std::string &room_name,
-        const std::string &task_name) -> DATA_BASE_EXECUTION_STATUS {
+        const std::string &task_name,
+        const u_int64_t reviewer_ID) -> DATA_BASE_EXECUTION_STATUS {
     try {
         profile reviewer;
 
@@ -1523,10 +1529,11 @@ auto data_base_manager::get_profile_tasks(std::vector<task> &result_tasks) -> DA
             curr_task.room_name = task.at(1).get_string();
             curr_task.creator_ID = task.at(2).get_uint64();
             curr_task.name = task.at(3).get_string();
-            curr_task.label = task.at(4).get_string();
-            curr_task.status = task.at(5).get_uint64();
-            curr_task.creation_time = task.at(6).get_datetime();
-            curr_task.deadline = task.at(7).get_datetime();
+            curr_task.name = task.at(4).get_string();
+            curr_task.label = task.at(5).get_string();
+            curr_task.status = task.at(6).get_uint64();
+            curr_task.creation_time = task.at(7).get_datetime();
+            curr_task.deadline = task.at(8).get_datetime();
 
             struct profile task_creator;
 
@@ -1620,7 +1627,7 @@ auto data_base_manager::get_room_tasks(const u_int64_t room_creator_ID, const st
         conn.execute(request.str(), result);
 
         auto tasks = this->convert_data_base_response_to_matrix(result.rows());
-
+        
         for (auto task : tasks) {
             struct task curr_task;
             
@@ -1628,10 +1635,11 @@ auto data_base_manager::get_room_tasks(const u_int64_t room_creator_ID, const st
             curr_task.room_name = task.at(1).get_string();
             curr_task.creator_ID = task.at(2).get_uint64();
             curr_task.name = task.at(3).get_string();
-            curr_task.label = task.at(4).get_string();
-            curr_task.status = task.at(5).get_uint64();
-            curr_task.creation_time = task.at(6).get_datetime();
-            curr_task.deadline = task.at(7).get_datetime();
+            curr_task.description = task.at(4).get_string();
+            curr_task.label = task.at(5).get_string();
+            curr_task.status = task.at(6).get_uint64();
+            curr_task.creation_time = task.at(7).get_datetime();
+            curr_task.deadline = task.at(8).get_datetime();
 
             struct profile task_creator;
 

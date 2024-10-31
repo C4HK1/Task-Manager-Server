@@ -30,6 +30,7 @@
 #include "../../models/task/task.h"
 #include "../../models/profile/profile.h"
 #include "../../models/config/config.h"
+#include "../../models/timer/timer.h"
 
 enum DATA_BASE_EXECUTION_STATUS {
     //Global part
@@ -144,9 +145,11 @@ public:
     
     auto delete_profile() -> DATA_BASE_EXECUTION_STATUS;
 
-    auto login_in_profile() -> DATA_BASE_EXECUTION_STATUS;
+    auto loggin_profile(const std::string &login, const std::string &password) -> DATA_BASE_EXECUTION_STATUS;
 
-    auto find_profiles_with_prefix_in_name(
+    auto profile_authenticate() -> DATA_BASE_EXECUTION_STATUS;
+
+    auto get_profiles_with_prefix_in_name(
             const std::string &prefix,
             std::vector<profile> &result_profiles) -> DATA_BASE_EXECUTION_STATUS;
 
@@ -177,22 +180,23 @@ public:
             const u_int64_t room_creator_ID, 
             const std::string &room_name,
             const std::string &task_name,
-            const std::string label,
+            const std::string &description,
+            const std::string &label,
             const u_int64_t status,
             const time_t &time_to_live,
             task &result_task) -> DATA_BASE_EXECUTION_STATUS;
 
     auto add_task_to_assignee(
-            const u_int64_t assignee_ID,
             const u_int64_t room_creator_ID,
             const std::string &room_name,
-            const std::string &task_name) -> DATA_BASE_EXECUTION_STATUS;
+            const std::string &task_name,
+            const u_int64_t assignee_ID) -> DATA_BASE_EXECUTION_STATUS;
     
     auto add_task_to_reviewer(
-            const u_int64_t reviewer_ID,
             const u_int64_t room_creator_ID,
             const std::string &room_name,
-            const std::string &task_name) -> DATA_BASE_EXECUTION_STATUS;
+            const std::string &task_name,
+            const u_int64_t reviewer_ID) -> DATA_BASE_EXECUTION_STATUS;
     
     auto get_task(
             const u_int64_t room_creator_ID,
@@ -218,16 +222,16 @@ public:
             const std::string &task_name) -> DATA_BASE_EXECUTION_STATUS;
     
     auto remove_task_from_assignee(
-            const u_int64_t assignee_ID,
             const u_int64_t room_creator_ID,
             const std::string &room_name,
-            const std::string &task_name) -> DATA_BASE_EXECUTION_STATUS;
+            const std::string &task_name,
+            const u_int64_t assignee_ID) -> DATA_BASE_EXECUTION_STATUS;
     
     auto remove_task_from_reviewer(
-            const u_int64_t reviewer_ID,
             const u_int64_t room_creator_ID,
             const std::string &room_name,
-            const std::string &task_name) -> DATA_BASE_EXECUTION_STATUS;
+            const std::string &task_name,
+            const u_int64_t reviewer_ID) -> DATA_BASE_EXECUTION_STATUS;
 
     //Join part
 

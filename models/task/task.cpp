@@ -1,19 +1,22 @@
 #include <boost/format/format_fwd.hpp>
 #include <ctime>
 #include <nlohmann/json_fwd.hpp>
-#include <chrono>
+#include "../timer/timer.h"
 
 #include "task.h"
 
 auto task::to_json() const -> nlohmann::json {
     return {
-            {"room_creator_ID", this->room_creator_ID},
-            {"room_name", this->room_name},
-            {"creator_ID", this->creator_ID},
+            {"room creator ID", this->room_creator_ID},
+            {"room name", this->room_name},
+            {"creator ID", this->creator_ID},
             {"name", this->name},
+            {"description", this->description},
             {"label", this->label},
             {"status", this->status},
-            {"creation_time", this->creation_time.valid() ? std::chrono::system_clock::to_time_t(this->creation_time.as_time_point()) : std::chrono::system_clock::to_time_t({})},
-            {"deadline", this->deadline.valid() ? std::chrono::system_clock::to_time_t(this->deadline.as_time_point()) : std::chrono::system_clock::to_time_t({})},
+            {"creation time", timer::convert_datetime_to_time_t(this->creation_time)},
+            {"deadline", timer::convert_datetime_to_time_t(this->deadline)},
+
+            {"creator name", this->creator_name},
         };
 }
