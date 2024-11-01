@@ -70,10 +70,10 @@ int main()
     // std::cout << manager.delete_room(3, "room1") << std::endl;
     // std::cout << manager.get_room(3, "room1", room) << std::endl;
     // std::cout << room.to_json() << std::endl;
-    std::cout << manager.create_task(1, "1", "5", "description", "in action", 1, 2, task) << std::endl;
+    // std::cout << manager.create_task(1, "1", "5", "description", "in action", 1, 2, task) << std::endl;
     // std::cout << manager.delete_task(3, "room1", "task1") << std::endl;
-    std::cout << manager.get_task(1, "1", "5", task) << std::endl;
-    std::cout << task.to_json() << std::endl;
+    // std::cout << manager.get_task(1, "1", "5", task) << std::endl;
+    // std::cout << task.to_json() << std::endl;
     // std::cout << manager.get_manager().to_json() << std::endl;
     // std::cout << manager.get_profile_rooms(rooms) << std::endl;
     // for (auto room : rooms) {

@@ -900,7 +900,7 @@ auto data_base_manager::create_task(
         const std::string &task_name,
         const std::string &description,
         const std::string &label,
-        const u_int64_t status,
+        const u_int64_t task_status,
         const time_t &time_to_live,
         task &result_task) -> DATA_BASE_EXECUTION_STATUS {
     try {
@@ -939,20 +939,20 @@ auto data_base_manager::create_task(
 
         request.str(std::string());
 
-        request << "INSERT INTO tasks (room_creator_ID, room_name, creator_ID, description, name, label, status, creation_time, deadline) VALUES ("
+        request << "INSERT INTO tasks (room_creator_ID, room_name, creator_ID, name, description, label, status, creation_time, deadline) VALUES ("
                 << room.creator_ID
                 << ", '"
                 << room.name
                 << "', "
                 << this->manager.ID
                 << ", '"
-                << description
-                << "', '"
                 << task_name
+                << "', '"
+                << description
                 << "', '"
                 << label
                 << "', "
-                << status
+                << task_status
                 << ", '"
                 << task_creation_timer.creation_time
                 << "', '"
@@ -1518,9 +1518,18 @@ auto data_base_manager::get_profile_tasks(std::vector<task> &result_tasks) -> DA
                 << this->manager.ID
                 << ") rooms_with_access ON rooms_with_access.room_creator_ID = tasks.room_creator_ID AND rooms_with_access.room_name = tasks.room_name";
 
+        std::cout << request.str() << std::endl;
+
         conn.execute(request.str(), result);
 
         auto tasks = this->convert_data_base_response_to_matrix(result.rows());
+
+        for (auto i : tasks) {
+            for (auto j : i) {
+                std::cout << j << " ";
+            }
+            std::cout << std::endl;
+        }
 
         for (auto task : tasks) {
             struct task curr_task;
@@ -1529,7 +1538,7 @@ auto data_base_manager::get_profile_tasks(std::vector<task> &result_tasks) -> DA
             curr_task.room_name = task.at(1).get_string();
             curr_task.creator_ID = task.at(2).get_uint64();
             curr_task.name = task.at(3).get_string();
-            curr_task.name = task.at(4).get_string();
+            curr_task.description = task.at(4).get_string();
             curr_task.label = task.at(5).get_string();
             curr_task.status = task.at(6).get_uint64();
             curr_task.creation_time = task.at(7).get_datetime();

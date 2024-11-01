@@ -295,7 +295,7 @@ auto request_handler::post_request_handler() -> void {
         response.push_back(nlohmann::json::object_t::value_type("status", global_status::get_status()));
 
         std::cout << "room deleting response " << response << std::endl;
-    } else if (!request.target().find("/CreateTask/")) {
+    } else if (!request.target().find("/CreateTask/")) {      
         auto room_creator_ID = this->request_data.at("room creator ID");
         auto room_name = this->request_data.at("room name");
         auto task_name = this->request_data.at("task name");
