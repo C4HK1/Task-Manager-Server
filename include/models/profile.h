@@ -1,5 +1,6 @@
 #pragma once
 
+#include <boost/mysql/row.hpp>
 #include <sys/types.h>
 #include <vector>
 #include <nlohmann/json.hpp>
@@ -13,6 +14,9 @@ struct profile {
 
     std::string email;
     std::string phone;
+
+    profile() = default;
+    profile(std::vector<boost::mysql::field> profile);
 
     auto to_json() const -> nlohmann::json;
     auto to_public_json() const -> nlohmann::json;

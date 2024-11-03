@@ -1,5 +1,6 @@
 #pragma once
 
+#include <boost/mysql/row.hpp>
 #include <boost/mysql/datetime.hpp>
 #include <string>
 #include <nlohmann/json.hpp>
@@ -22,6 +23,9 @@ struct task {
 
     //Additional information
     std::string creator_name;
+
+    task() = default;
+    task(std::vector<boost::mysql::field> task);
 
     auto to_json() const -> nlohmann::json;
 };

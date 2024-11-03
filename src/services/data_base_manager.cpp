@@ -310,7 +310,7 @@ auto data_base_manager::create_profile(
 
         request.str(std::string());
 
-        config default_config;
+        struct config default_config;
 
         request << "INSERT INTO configs (profile_ID, avatar, configuration) VALUES ("
                 << profile_ID
@@ -350,15 +350,10 @@ auto data_base_manager::get_profile_by_ID(
 
         conn.execute(request.str(), result);
 
-        auto profile = this->convert_data_base_response_to_matrix(result.rows());
+        auto profiles = this->convert_data_base_response_to_matrix(result.rows());
 
-        if (profile.size()) {
-            result_profile.ID = profile.at(0).at(0).get_uint64();
-            result_profile.name =profile.at(0).at(1).get_string();
-            result_profile.login = profile.at(0).at(2).get_string();
-            result_profile.password = profile.at(0).at(3).get_string();
-            result_profile.email = profile.at(0).at(4).get_string();
-            result_profile.phone = profile.at(0).at(5).get_string();
+        if (profiles.size()) {
+            result_profile = profiles.at(0);
             
             return DATA_BASE_COMPLETED_SUCCESSFULY;
         }
@@ -374,7 +369,7 @@ auto data_base_manager::get_profile_by_ID(
 
 auto data_base_manager::update_profile_config(const char *avatar, const char *configuration) -> DATA_BASE_EXECUTION_STATUS {
     try {
-        config config;
+        struct config config;
 
         auto status = get_profile_config(config);
 
@@ -405,7 +400,7 @@ auto data_base_manager::update_profile_config(const char *avatar, const char *co
 
 auto data_base_manager::get_profile_config(config &result_config) -> DATA_BASE_EXECUTION_STATUS {
     try {
-        profile profile;
+        struct profile profile;
 
         auto status = get_profile_by_ID(this->manager->ID, profile);
 
@@ -422,14 +417,10 @@ auto data_base_manager::get_profile_config(config &result_config) -> DATA_BASE_E
 
         conn.execute(request.str(), result);
 
-        auto config = this->convert_data_base_response_to_matrix(result.rows());
+        auto configs = this->convert_data_base_response_to_matrix(result.rows());
 
-        if (config.size()) {
-            auto avatar = config.at(0).at(1).as_blob();
-            auto configuration = config.at(0).at(2).as_blob();
-
-            result_config.avatar = std::string(avatar.begin(), avatar.end());
-            result_config.configuration = std::string(configuration.begin(), configuration.end());
+        if (configs.size()) {
+            result_config = configs.at(0);
 
             return DATA_BASE_COMPLETED_SUCCESSFULY;
         }
@@ -445,7 +436,7 @@ auto data_base_manager::get_profile_config(config &result_config) -> DATA_BASE_E
         
 auto data_base_manager::get_profile_assigned_tasks(std::vector<task> &result_tasks) -> DATA_BASE_EXECUTION_STATUS {
     try {
-        profile profile;
+        struct profile profile;
 
         auto status = get_profile_by_ID(this->manager->ID, profile);
 
@@ -466,17 +457,7 @@ auto data_base_manager::get_profile_assigned_tasks(std::vector<task> &result_tas
         auto tasks = this->convert_data_base_response_to_matrix(result.rows());
 
         for (auto task : tasks) {
-            struct task curr_task;
-
-            curr_task.room_creator_ID = task.at(0).get_uint64();
-            curr_task.room_name = task.at(1).get_string();
-            curr_task.creator_ID = task.at(2).get_uint64();
-            curr_task.name = task.at(3).get_string();
-            curr_task.description = task.at(4).get_string();
-            curr_task.label = task.at(5).get_string();
-            curr_task.status = task.at(6).get_uint64();
-            curr_task.creation_time = task.at(7).get_datetime();
-            curr_task.deadline = task.at(8).get_datetime();
+            struct task curr_task = task;
 
             struct profile task_creator;
 
@@ -501,7 +482,7 @@ auto data_base_manager::get_profile_assigned_tasks(std::vector<task> &result_tas
 
 auto data_base_manager::get_profile_reviewed_tasks(std::vector<task> &result_tasks) -> DATA_BASE_EXECUTION_STATUS {
     try {
-        profile profile;
+        struct profile profile;
 
         auto status = get_profile_by_ID(this->manager->ID, profile);
 
@@ -521,17 +502,7 @@ auto data_base_manager::get_profile_reviewed_tasks(std::vector<task> &result_tas
         auto tasks = this->convert_data_base_response_to_matrix(result.rows());
 
         for (auto task : tasks) {
-            struct task curr_task;
-
-            curr_task.room_creator_ID = task.at(0).get_uint64();
-            curr_task.room_name = task.at(1).get_string();
-            curr_task.creator_ID = task.at(2).get_uint64();
-            curr_task.name = task.at(3).get_string();
-            curr_task.description = task.at(4).get_string();
-            curr_task.label = task.at(5).get_string();
-            curr_task.status = task.at(6).get_uint64();
-            curr_task.creation_time = task.at(7).get_datetime();
-            curr_task.deadline = task.at(8).get_datetime();
+            struct task curr_task = task;
 
             struct profile task_creator;
 
@@ -613,12 +584,8 @@ auto data_base_manager::loggin_profile(const std::string &login, const std::stri
         auto profiles = this->convert_data_base_response_to_matrix(result.rows());
 
         for (auto profile : profiles) {
-            this->manager->ID = profile.at(0).get_uint64();
-            this->manager->name = profile.at(1).get_string();
-            this->manager->login = profile.at(2).get_string();
-            this->manager->password = profile.at(3).get_string();
-            this->manager->email = profile.at(4).get_string();
-            this->manager->phone = profile.at(5).get_string();
+            *this->manager = profile;
+
             return DATA_BASE_COMPLETED_SUCCESSFULY;
         }
 
@@ -652,14 +619,7 @@ auto data_base_manager::get_profiles_with_prefix_in_name(
         auto profiles = this->convert_data_base_response_to_matrix(result.rows());
 
         for (auto profile : profiles) {
-            struct profile curr_profile;
-
-            curr_profile.ID = profile.at(0).get_uint64();
-            curr_profile.name = profile.at(1).get_string();
-            curr_profile.login = profile.at(2).get_string();
-            curr_profile.password = profile.at(3).get_string();
-            curr_profile.email = profile.at(4).get_string();
-            curr_profile.phone = profile.at(5).get_string();
+            struct profile curr_profile = profile;
 
             result_profiles.push_back(curr_profile);
         }
@@ -774,18 +734,15 @@ auto data_base_manager::get_room(
 
         conn.execute(request.str(), result);
 
-        std::vector<std::vector<field>> room = this->convert_data_base_response_to_matrix(result.rows());
+        std::vector<std::vector<field>> rooms = this->convert_data_base_response_to_matrix(result.rows());
 
-        if (room.size() != room_with_no_access.size())
+        if (rooms.size() != room_with_no_access.size())
             return DATA_BASE_ROOM_ACCESS_ERROR;
 
-        if (room.size()) {
-            result_room.creator_ID = room.at(0).at(0).get_uint64();
-            result_room.name = room.at(0).at(1).get_string();
-            result_room.description = room.at(0).at(2).get_string();
+        if (rooms.size()) {
+            result_room = rooms.at(0);
 
-            profile creator_profile;
-            std::vector<task> tasks;
+            struct profile creator_profile;
 
             auto status = this->get_profile_by_ID(result_room.creator_ID, creator_profile);
             
@@ -810,7 +767,7 @@ auto data_base_manager::delete_room(
         const u_int64_t room_creator_ID, 
         const std::string &room_name) -> DATA_BASE_EXECUTION_STATUS {
     try {
-        room room;
+        struct room room;
         
         auto status = this->get_room(room_creator_ID, room_name, room);
 
@@ -843,14 +800,14 @@ auto data_base_manager::append_member_to_room(
         const u_int64_t creator_ID, 
         const std::string &room_name) -> DATA_BASE_EXECUTION_STATUS {
     try {
-        profile member;
+        struct profile member;
 
         auto status = this->get_profile_by_ID(member_ID, member);
 
         if (status)
             return  status;
 
-        room room;
+        struct room room;
 
         status = this->get_room(creator_ID, room_name, room);
 
@@ -918,7 +875,7 @@ auto data_base_manager::create_task(
         if (status)
             return status;
 
-        room room;
+        struct room room;
         
         status = this->get_room(room_creator_ID, room_name, room);
 
@@ -942,7 +899,7 @@ auto data_base_manager::create_task(
         if (tasks.size())
             return DATA_BASE_TASK_WITH_SUCH_PARAMETERS_IS_ALREADY_EXIST;
         
-        timer task_creation_timer(time_to_live);
+        struct timer task_creation_timer(time_to_live);
 
         request.str(std::string());
 
@@ -986,14 +943,14 @@ auto data_base_manager::add_task_to_assignee(
         const std::string &task_name,
         const u_int64_t assignee_ID) -> DATA_BASE_EXECUTION_STATUS {
     try {
-        profile assignee;
+        struct profile assignee;
 
         auto status = get_profile_by_ID(assignee_ID, assignee);
 
         if (status)
             return status;
 
-        task task;
+        struct task task;
 
         status = get_task(room_creator_ID, room_name, task_name, task);
 
@@ -1052,14 +1009,14 @@ auto data_base_manager::add_task_to_reviewer(
         const std::string &task_name,
         const u_int64_t reviewer_ID) -> DATA_BASE_EXECUTION_STATUS {
     try {
-        profile reviewer;
+        struct profile reviewer;
 
         auto status = get_profile_by_ID(reviewer_ID, reviewer);
 
         if (status)
             return status;
 
-        task task;
+        struct task task;
 
         status = get_task(room_creator_ID, room_name, task_name, task);
 
@@ -1118,7 +1075,7 @@ auto data_base_manager::get_task(
         const std::string &task_name, 
         task &result_task) -> DATA_BASE_EXECUTION_STATUS {
     try {
-        room room;
+        struct room room;
     
         auto status = this->get_room(room_creator_ID, room_name, room);
 
@@ -1139,20 +1096,12 @@ auto data_base_manager::get_task(
 
         conn.execute(request.str(), result);
 
-        auto task = this->convert_data_base_response_to_matrix(result.rows());
+        auto tasks = this->convert_data_base_response_to_matrix(result.rows());
 
-        if (task.size()) {
-            result_task.room_creator_ID = task.at(0).at(0).get_uint64();
-            result_task.room_name = task.at(0).at(1).get_string();
-            result_task.creator_ID = task.at(0).at(2).get_uint64();
-            result_task.name = task.at(0).at(3).get_string();
-            result_task.description = task.at(0).at(4).get_string();
-            result_task.label = task.at(0).at(5).get_string();
-            result_task.status = task.at(0).at(6).get_uint64();
-            result_task.creation_time = task.at(0).at(7).get_datetime();
-            result_task.deadline = task.at(0).at(8).get_datetime();
+        if (tasks.size()) {
+            result_task = tasks.at(0);
 
-            profile task_creator;
+            struct profile task_creator;
 
             status = this->get_profile_by_ID(result_task.creator_ID, task_creator);
 
@@ -1179,7 +1128,7 @@ auto data_base_manager::get_task_assignees(
         const std::string &task_name, 
         std::vector<profile> &result_assignees) -> DATA_BASE_EXECUTION_STATUS {
     try {
-        task task;
+        struct task task;
         
         auto status = this->get_task(room_creator_ID, room_name, task_name, task);
 
@@ -1203,15 +1152,8 @@ auto data_base_manager::get_task_assignees(
         auto profiles = this->convert_data_base_response_to_matrix(result.rows());
 
         for (auto profile : profiles) {
-            struct profile curr_profile;
+            struct profile curr_profile = profile;
 
-            curr_profile.ID = profile.at(0).get_uint64();
-            curr_profile.name = profile.at(1).get_string();
-            curr_profile.login = profile.at(2).get_string();
-            curr_profile.password = profile.at(3).get_string();
-            curr_profile.email = profile.at(4).get_string();
-            curr_profile.phone = profile.at(5).get_string();
-            
             result_assignees.push_back(curr_profile);
         }
 
@@ -1230,7 +1172,7 @@ auto data_base_manager::get_task_reviewers(
         const std::string &task_name, 
         std::vector<profile> &result_reviewers) -> DATA_BASE_EXECUTION_STATUS {
     try {
-        task task;
+        struct task task;
         
         auto status = this->get_task(room_creator_ID, room_name, task_name, task);
 
@@ -1254,15 +1196,8 @@ auto data_base_manager::get_task_reviewers(
         auto profiles = this->convert_data_base_response_to_matrix(result.rows());
 
         for (auto profile : profiles) {
-            struct profile curr_profile;
+            struct profile curr_profile = profile;
 
-            curr_profile.ID = profile.at(0).get_uint64();
-            curr_profile.name = profile.at(1).get_string();
-            curr_profile.login = profile.at(2).get_string();
-            curr_profile.password = profile.at(3).get_string();
-            curr_profile.email = profile.at(4).get_string();
-            curr_profile.phone = profile.at(5).get_string();
-            
             result_reviewers.push_back(curr_profile);
         }
 
@@ -1280,7 +1215,7 @@ auto data_base_manager::delete_task(
         const std::string &room_name,
         const std::string &task_name) -> DATA_BASE_EXECUTION_STATUS{
     try {
-        room room;
+        struct room room;
         
         auto status = this->get_room(room_creator_ID, room_name, room);
 
@@ -1335,14 +1270,14 @@ auto data_base_manager::remove_task_from_assignee(
         const std::string &task_name,
         const u_int64_t assignee_ID) -> DATA_BASE_EXECUTION_STATUS {
     try {
-        profile assignee;
+        struct profile assignee;
 
         auto status = get_profile_by_ID(assignee_ID, assignee);
 
         if (status)
             return status;
 
-        task task;
+        struct task task;
 
         status = get_task(room_creator_ID, room_name, task_name, task);
 
@@ -1401,14 +1336,14 @@ auto data_base_manager::remove_task_from_reviewer(
         const std::string &task_name,
         const u_int64_t reviewer_ID) -> DATA_BASE_EXECUTION_STATUS {
     try {
-        profile reviewer;
+        struct profile reviewer;
 
         auto status = get_profile_by_ID(reviewer_ID, reviewer);
 
         if (status)
             return status;
 
-        task task;
+        struct task task;
 
         status = get_task(room_creator_ID, room_name, task_name, task);
 
@@ -1466,7 +1401,7 @@ auto data_base_manager::remove_task_from_reviewer(
 
 auto data_base_manager::get_profile_rooms(std::vector<room> &result_rooms) -> DATA_BASE_EXECUTION_STATUS {
     try {
-        profile profile;
+        struct profile profile;
 
         auto status = this->get_profile_by_ID(this->manager->ID, profile);
 
@@ -1483,11 +1418,7 @@ auto data_base_manager::get_profile_rooms(std::vector<room> &result_rooms) -> DA
         auto rooms = this->convert_data_base_response_to_matrix(result.rows());
 
         for (auto room : rooms) {
-            struct room curr_room;
-
-            curr_room.creator_ID = room.at(0).get_uint64();
-            curr_room.name = room.at(1).get_string();
-            curr_room.description = room.at(2).get_string();
+            struct room curr_room  = room;
 
             struct profile room_creator;
 
@@ -1512,7 +1443,7 @@ auto data_base_manager::get_profile_rooms(std::vector<room> &result_rooms) -> DA
 
 auto data_base_manager::get_profile_tasks(std::vector<task> &result_tasks) -> DATA_BASE_EXECUTION_STATUS {
     try {
-        profile profile;
+        struct profile profile;
 
         auto status = this->get_profile_by_ID(this->manager->ID, profile);
 
@@ -1531,25 +1462,8 @@ auto data_base_manager::get_profile_tasks(std::vector<task> &result_tasks) -> DA
 
         auto tasks = this->convert_data_base_response_to_matrix(result.rows());
 
-        for (auto i : tasks) {
-            for (auto j : i) {
-                std::cout << j << " ";
-            }
-            std::cout << std::endl;
-        }
-
         for (auto task : tasks) {
-            struct task curr_task;
-
-            curr_task.room_creator_ID = task.at(0).get_uint64();
-            curr_task.room_name = task.at(1).get_string();
-            curr_task.creator_ID = task.at(2).get_uint64();
-            curr_task.name = task.at(3).get_string();
-            curr_task.description = task.at(4).get_string();
-            curr_task.label = task.at(5).get_string();
-            curr_task.status = task.at(6).get_uint64();
-            curr_task.creation_time = task.at(7).get_datetime();
-            curr_task.deadline = task.at(8).get_datetime();
+            struct task curr_task = task;
 
             struct profile task_creator;
 
@@ -1598,15 +1512,8 @@ auto data_base_manager::get_room_profiles(const u_int64_t room_creator_ID, const
         auto profiles = this->convert_data_base_response_to_matrix(result.rows());
 
         for (auto profile : profiles) {
-            struct profile curr_profile;
+            struct profile curr_profile = profile;
 
-            curr_profile.ID = profile.at(0).get_uint64();
-            curr_profile.name = profile.at(1).get_string();
-            curr_profile.login = profile.at(2).get_string();
-            curr_profile.password = profile.at(3).get_string();
-            curr_profile.email = profile.at(4).get_string();
-            curr_profile.phone = profile.at(5).get_string();
-            
             result_profiles.push_back(curr_profile);
         }
 
@@ -1621,7 +1528,7 @@ auto data_base_manager::get_room_profiles(const u_int64_t room_creator_ID, const
 
 auto data_base_manager::get_room_tasks(const u_int64_t room_creator_ID, const std::string &room_name, std::vector<task> &result_tasks) -> DATA_BASE_EXECUTION_STATUS {
     try {
-        room room;
+        struct room room;
 
         auto status = this->get_room(room_creator_ID, room_name, room);
 
@@ -1645,17 +1552,7 @@ auto data_base_manager::get_room_tasks(const u_int64_t room_creator_ID, const st
         auto tasks = this->convert_data_base_response_to_matrix(result.rows());
         
         for (auto task : tasks) {
-            struct task curr_task;
-            
-            curr_task.room_creator_ID = task.at(0).get_uint64();
-            curr_task.room_name = task.at(1).get_string();
-            curr_task.creator_ID = task.at(2).get_uint64();
-            curr_task.name = task.at(3).get_string();
-            curr_task.description = task.at(4).get_string();
-            curr_task.label = task.at(5).get_string();
-            curr_task.status = task.at(6).get_uint64();
-            curr_task.creation_time = task.at(7).get_datetime();
-            curr_task.deadline = task.at(8).get_datetime();
+            struct task curr_task  = task;
 
             struct profile task_creator;
 
