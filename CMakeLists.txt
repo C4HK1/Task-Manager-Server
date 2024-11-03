@@ -6,26 +6,36 @@ set(MYCOMPILE_FLAGS)
 
 find_package(Boost REQUIRED COMPONENTS system filesystem)
 # find_package(cpp-jwt REQUIRED)
-add_subdirectory(./cpp-jwt)
+add_subdirectory(libs/cpp-jwt)
 
 include_directories(${Boost_INCLUDE_DIRS})
+include_directories(include)
+
+set(MODELS_SOURCES 
+    src/models/profile.cpp     
+    src/models/room.cpp
+    src/models/task.cpp
+    src/models/config.cpp
+    src/models/timer.cpp
+)
+
+set(SERVICES_SOURCES 
+    src/services/JWT_manager.cpp
+    src/services/file_parser.cpp
+    src/services/data_base_manager.cpp  
+)
+
+set(SERVER_SOURCES
+    src/server/http_connection.cpp
+    src/server/request_handler.cpp
+    src/server/server_status.cpp
+)
 
 add_executable(RestfulApi 
-    main.cpp
-    models/Profile/profile.h
-    models/Room/room.h
-    models/Task/task.h
-    models/Profile/profile.cpp
-    models/Room/room.cpp
-    models/Task/task.cpp
-    services/JWT/JWT_manager.h
-    services/JWT/JWT_manager.cpp
-    "services/Server Connection/http_connection.h"
-    "services/Server Connection/http_connection.cpp"
-    "services/Text File Parser/text_file_parser.h"
-    "services/Text File Parser/text_file_parser.cpp"
-    "services/Data Base/data_base_manager.h"
-    "services/Data Base/data_base_manager.cpp"    
+    src/main.cpp
+    ${MODELS_SOURCES}
+    ${SERVICES_SOURCES}
+    ${SERVER_SOURCES}
 )
 
 target_link_libraries(RestfulApi ${MYCOMPILE_FLAGS} ${Boost_LIBRARIES} cpp-jwt::cpp-jwt)

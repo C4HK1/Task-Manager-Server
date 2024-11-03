@@ -5,14 +5,13 @@
 #include <boost/beast/version.hpp>
 #include <boost/asio.hpp>
 #include <cstdlib>
-#include <ctime>
-#include <exception>
 #include <iostream>
+#include <ctime>
 #include <jwt/algorithm.hpp>
 #include <openssl/x509.h>
 #include <jwt/jwt.hpp>
 
-#include "services/Server Connection/http_connection.h"
+#include "server/http_connection.h"
 
 namespace beast = boost::beast;         // from <boost/beast.hpp>
 namespace net = boost::asio;            // from <boost/asio.hpp>
