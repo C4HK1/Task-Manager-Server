@@ -8,7 +8,7 @@
 #include "models/room.h" 
 #include "models/task.h" 
 #include "models/config.h" 
-#include "models/timer.h" 
+#include "models/invite.h" 
 
 request_handler::request_handler(http::request<http::dynamic_body> *request, http::response<http::dynamic_body> *response) : 
         request(request),
@@ -82,24 +82,25 @@ auto request_handler::get_request_handler() -> void {
         response.push_back(nlohmann::json::object_t::value_type("profile", this->data_base->get_manager().to_json()));
  
         std::cout << "get profile response " << response << std::endl;
-    } else if (!(*this->request).target().find("/GetProfilesWithPrefix/")) {
-        auto prefix = this->request_data.at("prefix");
+    } else if (!(*this->request).target().find("/GetProfilesWithSubstr/")) {
+        auto prefix = this->request_data.at("substr");
+        auto offset = this->request_data.at("offset");
 
         std::vector<profile> result_profiles;
 
-        server_status::data_base_status = this->data_base->get_profiles_with_prefix_in_name(prefix, result_profiles);
+        server_status::data_base_status = this->data_base->get_profiles_with_substr_in_name(prefix, offset, result_profiles);
 
         response.push_back(nlohmann::json::object_t::value_type("status", server_status::get_status()));
 
         nlohmann::json profiles;
 
         for (auto profile : result_profiles) {
-            profiles.push_back(profile.to_json());
+            profiles.push_back(profile.to_public_json());
         }
 
         response.push_back(nlohmann::json::object_t::value_type("profiles", profiles));
 
-        std::cout << "find profile with prefix response " << response << std::endl;
+        std::cout << "find profiles with substr response " << response << std::endl;
     } else if (!(*this->request).target().find("/GetPublicProfile/")) {
         auto profile_ID = this->request_data.at("profile ID");
 
@@ -177,7 +178,41 @@ auto request_handler::get_request_handler() -> void {
             tasks.push_back(task.to_json());
         }
 
+        response.push_back(nlohmann::json::object_t::value_type("tasks", tasks));
+
         std::cout << "get profile reviewed tasks response " << response << std::endl;
+    } else if (!(*this->request).target().find("/GetProfileReceivedInvites/")) {
+        std::vector<invite> result_invites;
+
+        server_status::data_base_status = this->data_base->get_profile_received_invites(result_invites);
+
+        response.push_back(nlohmann::json::object_t::value_type("status", server_status::get_status()));
+
+        nlohmann::json invites;
+
+        for (auto invite : result_invites) {
+            invites.push_back(invite.to_json());
+        }
+
+        response.push_back(nlohmann::json::object_t::value_type("invites", invites));
+
+        std::cout << "get profile received invites response " << response << std::endl;
+    } else if (!(*this->request).target().find("/GetProfileSendedInvites/")) {
+        std::vector<invite> result_invites;
+
+        server_status::data_base_status = this->data_base->get_profile_sended_invites(result_invites);
+
+        response.push_back(nlohmann::json::object_t::value_type("status", server_status::get_status()));
+
+        nlohmann::json invites;
+
+        for (auto invite : result_invites) {
+            invites.push_back(invite.to_json());
+        }
+
+        response.push_back(nlohmann::json::object_t::value_type("invites", invites));
+
+        std::cout << "get profile sended invites response " << response << std::endl;
     } else if (!(*this->request).target().find("/GetRoom/")) {
         auto room_creator_ID = this->request_data.at("room creator ID");
         auto room_name = this->request_data.at("room name");
@@ -276,16 +311,6 @@ auto request_handler::post_request_handler() -> void {
         response.push_back(nlohmann::json::object_t::value_type("room", result_room.to_json()));
         
         std::cout << "room creating response " << response << std::endl;
-    } else if (!(*request).target().find("/AppendMemberToRoom/")) {
-        auto member_ID = this->request_data.at("member ID");
-        auto room_creator_ID = this->request_data.at("room creator ID");
-        auto room_name = this->request_data.at("room name");
-
-        server_status::data_base_status = this->data_base->append_member_to_room(member_ID, room_creator_ID, room_name);
-
-        response.push_back(nlohmann::json::object_t::value_type("status", server_status::get_status()));
-        
-        std::cout << "appending member to room response " << response << std::endl;
     } else if (!(*request).target().find("/DeleteRoom/")) {
         auto room_creator_ID = this->request_data.at("room creator ID");
         auto room_name = this->request_data.at("room name");
@@ -366,6 +391,45 @@ auto request_handler::post_request_handler() -> void {
         response.push_back(nlohmann::json::object_t::value_type("status", server_status::get_status()));
         
         std::cout << "task deleting response " << response << std::endl;
+    }  else if (!(*request).target().find("/CreateInvite/")) {
+        auto receiver_ID = this->request_data.at("receiver ID");
+        auto room_creator_ID = this->request_data.at("room creator ID");
+        auto room_name = this->request_data.at("room name");
+
+        server_status::data_base_status = this->data_base->create_invite(receiver_ID, room_creator_ID, room_name);
+
+        response.push_back(nlohmann::json::object_t::value_type("status", server_status::get_status()));
+        
+        std::cout << "creating invite response " << response << std::endl;
+    } else if (!(*request).target().find("/AcceptInvite/")) {
+        auto room_creator_ID = this->request_data.at("room creator ID");
+        auto room_name = this->request_data.at("room name");
+
+        server_status::data_base_status = this->data_base->accept_invite(room_creator_ID, room_name);
+
+        response.push_back(nlohmann::json::object_t::value_type("status", server_status::get_status()));
+        
+        std::cout << "accepting invite response " << response << std::endl;
+    } else if (!(*request).target().find("/DeleteSendedInvite/")) {
+        auto receiver_ID = this->request_data.at("receiver ID");
+        auto room_creator_ID = this->request_data.at("room creator ID");
+        auto room_name = this->request_data.at("room name");
+
+        server_status::data_base_status = this->data_base->delete_sended_invite(receiver_ID, room_creator_ID, room_name);
+
+        response.push_back(nlohmann::json::object_t::value_type("status", server_status::get_status()));
+        
+        std::cout << "deleting sended invite response " << response << std::endl;
+    } else if (!(*request).target().find("/DeleteReceivedInvite/")) {
+        auto sender_ID = this->request_data.at("sender ID");
+        auto room_creator_ID = this->request_data.at("room creator ID");
+        auto room_name = this->request_data.at("room name");
+
+        server_status::data_base_status = this->data_base->delete_received_invite(sender_ID, room_creator_ID, room_name);
+
+        response.push_back(nlohmann::json::object_t::value_type("status", server_status::get_status()));
+        
+        std::cout << "deleting received invite response " << response << std::endl;
     } else {
         (*this->response).result(http::status::not_found);
         (*this->response).set(http::field::content_type, "text/plain");

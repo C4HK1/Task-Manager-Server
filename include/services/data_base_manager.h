@@ -21,6 +21,7 @@
 #include <iostream>
 #include <boost/format.hpp>
 #include <boost/mysql/tcp_ssl.hpp>
+#include <nlohmann/json_fwd.hpp>
 #include <stdlib.h>
 #include <sys/types.h>
 #include <utility>
@@ -31,6 +32,7 @@ class room;
 class task; 
 class config; 
 class timer; 
+class invite; 
 
 enum DATA_BASE_EXECUTION_STATUS : u_int64_t {
     //Global part
@@ -62,6 +64,15 @@ enum DATA_BASE_EXECUTION_STATUS : u_int64_t {
     DATA_BASE_THIS_PROFILE_IS_ALREADY_REVIEW_THIS_TASK,
     DATA_BASE_THIS_ID_IS_NOT_REVIEW_THIS_TASK,
     
+    //Invite part
+    DATA_BASE_INVITE_ALREADY_SENDED,
+    DATA_BASE_THERE_IS_NO_INVITES_WITH_SUCH_PARAMETERS,
+    DATA_BASE_THETE_IS_NO_ACCESS_FOR_THIS_INVITE,
+
+    //Messages part
+    DATA_BASE_THERE_IS_NO_MESSAGE_WITH_SUCH_PARAMETERS,
+    DATA_BASE_THETE_IS_NO_ACCESS_FOR_THIS_MESSAGE,
+
     //Join part
 };
 
@@ -87,7 +98,6 @@ class data_base_manager {
     profile *manager;
 
     //Table creation part
-
     auto create_profiles_table() -> void;
     auto create_rooms_table() -> void;
     auto create_profile_room_table() -> void;
@@ -95,9 +105,10 @@ class data_base_manager {
     auto create_configs_table() -> void;
     auto create_assignees_table() -> void;
     auto create_reviewers_table() -> void;
+    auto create_invites_table() -> void;
+    auto create_message_tabel() -> void;  
 
     //Data base table management part
-
     auto convert_data_base_response_to_matrix(const boost::mysql::rows_view &rows) -> std::vector<std::vector<boost::mysql::field>>;
     
     auto drop_table(const std::string &name) -> void;
@@ -106,7 +117,6 @@ class data_base_manager {
 
 public:
     //Object part
-
     data_base_manager(
             const std::string &manager_login = DEFAULT_MANAGER_LOGIN,
             const std::string &manager_password = DEFAULT_MANAGER_PASSWORD, 
@@ -121,7 +131,6 @@ public:
     auto get_manager() -> profile;
 
     //Profile part
-
     auto create_profile(
             const std::string &name,
             const std::string &login,
@@ -142,18 +151,23 @@ public:
 
     auto get_profile_reviewed_tasks(std::vector<task> &result_tasks) -> DATA_BASE_EXECUTION_STATUS;
     
+    auto get_profiles_with_substr_in_name(
+            const std::string &prefix,
+            const u_int64_t offset,
+            std::vector<profile> &result_profiles) -> DATA_BASE_EXECUTION_STATUS;
+
+    auto get_profile_received_invites(std::vector<invite> &result_invites) -> DATA_BASE_EXECUTION_STATUS;
+    
+    auto get_profile_sended_invites(std::vector<invite> &result_invites) -> DATA_BASE_EXECUTION_STATUS;
+    
     auto delete_profile() -> DATA_BASE_EXECUTION_STATUS;
 
     auto loggin_profile(const std::string &login, const std::string &password) -> DATA_BASE_EXECUTION_STATUS;
 
     auto profile_authenticate() -> DATA_BASE_EXECUTION_STATUS;
 
-    auto get_profiles_with_prefix_in_name(
-            const std::string &prefix,
-            std::vector<profile> &result_profiles) -> DATA_BASE_EXECUTION_STATUS;
 
     //Room part
-
     auto create_room(
             const std::string &room_name,
             const std::string &description, 
@@ -168,13 +182,7 @@ public:
             const u_int64_t room_creator_ID, 
             const std::string &room_name) -> DATA_BASE_EXECUTION_STATUS;
 
-    auto append_member_to_room(
-            const u_int64_t member_ID, 
-            u_int64_t room_creator_ID, 
-            const std::string &room_name) -> DATA_BASE_EXECUTION_STATUS;
-
     //Task part
-
     auto create_task(
             const u_int64_t room_creator_ID, 
             const std::string &room_name,
@@ -232,8 +240,34 @@ public:
             const std::string &task_name,
             const u_int64_t reviewer_ID) -> DATA_BASE_EXECUTION_STATUS;
 
-    //Join part
+    //Invites part
+    auto create_invite(
+            const u_int64_t receiver_ID, 
+            const u_int64_t room_creator_ID, 
+            const std::string room_name) -> DATA_BASE_EXECUTION_STATUS;
+    
+    auto accept_invite(
+            u_int64_t room_creator_ID, 
+            std::string room_name) -> DATA_BASE_EXECUTION_STATUS;
 
+    auto delete_sended_invite(
+            u_int64_t receiver_ID, 
+            u_int64_t room_creator_ID, 
+            std::string room_name) -> DATA_BASE_EXECUTION_STATUS;
+
+    auto delete_received_invite(
+            u_int64_t sender_ID, 
+            u_int64_t room_creator_ID, 
+            std::string room_name) -> DATA_BASE_EXECUTION_STATUS;
+        
+    auto delete_invite(
+            u_int64_t receiver_ID, 
+            u_int64_t sender_ID, 
+            u_int64_t room_creator_ID, 
+            std::string room_name) -> DATA_BASE_EXECUTION_STATUS;
+
+
+    //Join part
     auto get_profile_rooms(std::vector<room> &result_rooms) -> DATA_BASE_EXECUTION_STATUS;
     
     auto get_profile_tasks(std::vector<task> &result_tasks) -> DATA_BASE_EXECUTION_STATUS;
@@ -249,7 +283,6 @@ public:
             std::vector<task> &result_tasks) -> DATA_BASE_EXECUTION_STATUS;
 
     //Data base table management part
-
     auto print_tabel(const std::string &name) -> void;
 
     auto drop_tables() -> void;

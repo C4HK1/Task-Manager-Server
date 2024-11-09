@@ -2,6 +2,7 @@
 #include <boost/mysql/field_view.hpp>
 #include <boost/mysql/rows_view.hpp>
 #include <cstring>
+#include <ctime>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -12,13 +13,13 @@
 #include "models/task.h" 
 #include "models/config.h" 
 #include "models/timer.h" 
+#include "models/invite.h" 
 
 #include "services/data_base_manager.h"
 
 using namespace boost::mysql;
 
 // Object part
-
 data_base_manager::data_base_manager(
         const std::string &manager_login, 
         const std::string &manager_password, 
@@ -82,7 +83,6 @@ auto data_base_manager::get_manager() -> profile {
 }
 
 //Table creation part
-
 auto data_base_manager::create_profiles_table() -> void {
     try {
         conn.query(
@@ -101,7 +101,7 @@ auto data_base_manager::create_profiles_table() -> void {
         std::cout << exception.get_diagnostics().server_message() << std::endl;
         std::cout << exception.get_diagnostics().client_message() << std::endl;
     }
-}
+}   
 
 auto data_base_manager::create_rooms_table() -> void {
     try {
@@ -231,8 +231,51 @@ auto data_base_manager::create_reviewers_table() -> void {
     }
 }
 
-// Profile part
+auto data_base_manager::create_invites_table() -> void {
+    try {
+        conn.query(
+        R"%(
+            CREATE TABLE invites (
+                sender_ID BIGINT UNSIGNED NOT NULL UNIQUE,
+                receiver_ID BIGINT UNSIGNED NOT NULL UNIQUE,
+                room_creator_ID BIGINT UNSIGNED NOT NULL,
+                room_name VARCHAR(50) UNIQUE NOT NULL,
 
+                PRIMARY KEY (sender_ID, receiver_ID, room_creator_ID, room_name),
+                FOREIGN KEY (sender_ID) REFERENCES profiles(ID) ON DELETE CASCADE,
+                FOREIGN KEY (receiver_ID) REFERENCES profiles(ID) ON DELETE CASCADE,
+                FOREIGN KEY (room_creator_ID, room_name) REFERENCES rooms(creator_ID, name) ON DELETE CASCADE
+            )
+        )%", result);
+    } catch (boost::mysql::error_with_diagnostics &exception) {
+        std::cout << exception.get_diagnostics().server_message() << std::endl;
+        std::cout << exception.get_diagnostics().client_message() << std::endl;
+    }
+}
+
+auto data_base_manager::create_message_tabel() -> void {
+try {
+        conn.query(
+        R"%(
+            CREATE TABLE messages (
+                ID BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT NOT NULL UNIQUE,
+                sender_ID BIGINT UNSIGNED NOT NULL UNIQUE,
+                receiver_ID BIGINT UNSIGNED NOT NULL UNIQUE,
+                type BIGINT UNSIGNED NOT NULL,
+                creation_time DATETIME,
+                is_viewed BOOLEAN NOD NULL DEFAULT 0,
+
+                FOREIGN KEY (sender_ID) REFERENCES profiles(ID) ON DELETE CASCADE,
+                FOREIGN KEY (receiver_ID) REFERENCES profiles(ID) ON DELETE CASCADE,
+            )
+        )%", result);
+    } catch (boost::mysql::error_with_diagnostics &exception) {
+        std::cout << exception.get_diagnostics().server_message() << std::endl;
+        std::cout << exception.get_diagnostics().client_message() << std::endl;
+    }
+}
+
+// Profile part
 auto data_base_manager::create_profile(
         const std::string &name,
         const std::string &login,
@@ -301,12 +344,12 @@ auto data_base_manager::create_profile(
 
         conn.execute(request.str(), result);
 
-        auto ID = this->convert_data_base_response_to_matrix(result.rows());
+        auto IDs = this->convert_data_base_response_to_matrix(result.rows());
 
-        if (!ID.size())
+        if (!IDs.size())
             return DATA_BASE_THERE_IS_NO_PROFILE_WITH_SUCH_LOGIN_AND_PASSWORD;
 
-        u_int64_t profile_ID = ID.at(0).at(0).as_uint64();
+        u_int64_t profile_ID = IDs.at(0).at(0).as_uint64();
 
         request.str(std::string());
 
@@ -525,6 +568,88 @@ auto data_base_manager::get_profile_reviewed_tasks(std::vector<task> &result_tas
     }
 }
 
+auto data_base_manager::get_profile_received_invites(std::vector<invite> &result_invites) -> DATA_BASE_EXECUTION_STATUS {
+    try {
+        std::stringstream request;
+
+        request << "SELECT * FROM invites WHERE receiver_ID = "
+                << this->manager->ID;
+
+        std::cout << request.str();
+
+        conn.execute(request.str(), result);
+
+        auto invites = this->convert_data_base_response_to_matrix(result.rows());
+
+        for (auto invite : invites) {
+            struct invite curr_invite = invite;
+
+            curr_invite.receiver_name = this->manager->name;
+
+            struct profile sender;
+
+            auto sender_ID = invite.at(0).get_uint64();
+
+            auto status = this->get_profile_by_ID(sender_ID, sender);
+
+            if (status)
+                return status;
+
+            curr_invite.sender_name = sender.name;
+
+            result_invites.push_back(curr_invite);
+        }
+
+        return DATA_BASE_COMPLETED_SUCCESSFULY;
+    } catch (boost::mysql::error_with_diagnostics &exception) {
+        std::cout << exception.get_diagnostics().server_message() << std::endl;
+        std::cout << exception.get_diagnostics().client_message() << std::endl;
+
+        return DATA_BASE_FAILED;
+    }
+}
+
+auto data_base_manager::get_profile_sended_invites(std::vector<invite> &result_invites) -> DATA_BASE_EXECUTION_STATUS {
+    try {
+        std::stringstream request;
+
+        request << "SELECT * FROM invites WHERE sender_ID = "
+                << this->manager->ID;
+
+        std::cout << request.str();
+
+        conn.execute(request.str(), result);
+
+        auto invites = this->convert_data_base_response_to_matrix(result.rows());
+
+        for (auto invite : invites) {
+            struct invite curr_invite = invite;
+
+            curr_invite.sender_name = this->manager->name;
+
+            struct profile receiver;
+
+            auto receiver_ID = invite.at(1).get_uint64();
+
+            auto status = this->get_profile_by_ID(receiver_ID, receiver);
+
+            if (status)
+                return status;
+
+            curr_invite.receiver_name = receiver.name;
+
+            result_invites.push_back(curr_invite);
+        }
+
+        return DATA_BASE_COMPLETED_SUCCESSFULY;
+    } catch (boost::mysql::error_with_diagnostics &exception) {
+        std::cout << exception.get_diagnostics().server_message() << std::endl;
+        std::cout << exception.get_diagnostics().client_message() << std::endl;
+
+        return DATA_BASE_FAILED;
+    }
+}
+
 auto data_base_manager::delete_profile() -> DATA_BASE_EXECUTION_STATUS
 {
     try {
@@ -602,15 +727,19 @@ auto data_base_manager::profile_authenticate() -> DATA_BASE_EXECUTION_STATUS {
     return this->loggin_profile(this->manager->login, this->manager->password);
 }
 
-auto data_base_manager::get_profiles_with_prefix_in_name(
-        const std::string &prefix, 
+auto data_base_manager::get_profiles_with_substr_in_name(
+        const std::string &substr, 
+        const u_int64_t offset,
         std::vector<profile> &result_profiles) -> DATA_BASE_EXECUTION_STATUS {
     try {
         std::stringstream request;
         
-        request << "SELECT * FROM profiles WHERE login LIKE '"
-                << prefix
-                << "'%";
+        request << "SELECT * FROM (SELECT * FROM profiles WHERE name LIKE '%"
+                << substr
+                << "%' AND ID <> "
+                << this->manager->ID
+                << ") profiles_with_substr ORDER BY ID DESC LIMIT 10 OFFSET "
+                << offset;
 
         std::cout << request.str() << std::endl;
 
@@ -634,7 +763,6 @@ auto data_base_manager::get_profiles_with_prefix_in_name(
 }
 
 // Room part
-
 auto data_base_manager::create_room(
         const std::string &room_name, 
         const std::string &description, 
@@ -795,69 +923,7 @@ auto data_base_manager::delete_room(
     }
 }
 
-auto data_base_manager::append_member_to_room(
-        const u_int64_t member_ID, 
-        const u_int64_t creator_ID, 
-        const std::string &room_name) -> DATA_BASE_EXECUTION_STATUS {
-    try {
-        struct profile member;
-
-        auto status = this->get_profile_by_ID(member_ID, member);
-
-        if (status)
-            return  status;
-
-        struct room room;
-
-        status = this->get_room(creator_ID, room_name, room);
-
-        if (status)
-            return  status;
-
-        std::stringstream request;
-
-        request << "SELECT * FROM profile_room WHERE profile_ID = "
-                << member.ID 
-                << " AND room_creator_ID = "
-                << room.creator_ID
-                << " AND room_name = '"
-                << room.name
-                << "'";
-
-        std::cout << request.str() << std::endl;
-
-        conn.execute(request.str(), result);
-
-        auto profile_room = this->convert_data_base_response_to_matrix(result.rows());
-
-        if (profile_room.size())
-            return DATA_BASE_THIS_PROFILE_IS_ALREADY_EXIST_IN_THIS_ROOM;
-
-        request.str(std::string());
-
-        request << "INSERT INTO profile_room (profile_ID, room_creator_ID, room_name) VALUES ("
-                << member.ID
-                << ", "
-                << room.creator_ID
-                << ", '"
-                << room.name
-                << "')";
-
-        std::cout << request.str() << std::endl;
-
-        conn.query(request.str(), result);
-
-        return DATA_BASE_COMPLETED_SUCCESSFULY;
-    } catch (boost::mysql::error_with_diagnostics &exception) {
-        std::cout << exception.get_diagnostics().server_message() << std::endl;
-        std::cout << exception.get_diagnostics().client_message() << std::endl;
-
-        return DATA_BASE_FAILED;
-    }
-}
-
 // Task part
-
 auto data_base_manager::create_task(
         const u_int64_t room_creator_ID, 
         const std::string &room_name,
@@ -935,7 +1001,6 @@ auto data_base_manager::create_task(
         return DATA_BASE_FAILED;
     }
 }
-
 
 auto data_base_manager::add_task_to_assignee(
         const u_int64_t room_creator_ID,
@@ -1397,8 +1462,207 @@ auto data_base_manager::remove_task_from_reviewer(
 }
 
 
-// Join part
+//Invite part
+auto data_base_manager::create_invite(
+        const u_int64_t receiver_ID, 
+        const u_int64_t room_creator_ID, 
+        const std::string room_name) -> DATA_BASE_EXECUTION_STATUS {
+    try {
+        struct profile member;
 
+        auto status = this->get_profile_by_ID(receiver_ID, member);
+
+        if (status)
+            return  status;
+
+        struct room room;
+
+        status = this->get_room(this->manager->ID, room_name, room);
+
+        if (status)
+            return  status;
+
+        std::stringstream request;
+
+        request << "SELECT * FROM invites WHERE sender_ID = "
+            << this->manager->ID
+            << " AND receiver_ID = "
+            << receiver_ID
+            << " AND room_creator_ID = "
+            << room.creator_ID
+            << " AND room_name = '"
+            << room.name
+            << "'";
+
+        std::cout << request.str() << std::endl;
+
+        conn.execute(request.str(), result);
+
+        auto invites = this->convert_data_base_response_to_matrix(result.rows());
+
+        if (invites.size())
+            return DATA_BASE_INVITE_ALREADY_SENDED;
+
+        request.str(std::string());
+
+        request << "INSERT INTO invites (sender_ID, receiver_ID, room_creator_ID, room_name) VALUES ("
+            << this->manager->ID
+            << ", "
+            << receiver_ID
+            << ", "
+            << room.creator_ID
+            << ", '"
+            << room.name
+            << "')";
+
+        std::cout << request.str() << std::endl;
+
+        conn.query(request.str(), result);
+
+        return DATA_BASE_COMPLETED_SUCCESSFULY;
+    } catch (boost::mysql::error_with_diagnostics &exception) {
+        std::cout << exception.get_diagnostics().server_message() << std::endl;
+        std::cout << exception.get_diagnostics().client_message() << std::endl;
+
+        return DATA_BASE_FAILED;
+    }
+}    
+
+auto data_base_manager::accept_invite(
+        u_int64_t room_creator_ID, 
+        std::string room_name) -> DATA_BASE_EXECUTION_STATUS {
+    try {
+        std::stringstream request;
+
+        request << "SELECT * FROM invites WHERE receiver_ID = "
+                << this->manager->ID 
+                << " AND room_creator_ID = "
+                << room_creator_ID
+                << " AND room_name = '"
+                << room_name
+                << "'";
+
+        std::cout << request.str() << std::endl;
+
+        conn.execute(request.str(), result);
+
+        auto invites = this->convert_data_base_response_to_matrix(result.rows());
+
+        if (!invites.size())
+            return DATA_BASE_THERE_IS_NO_INVITES_WITH_SUCH_PARAMETERS;
+
+        request.str(std::string());
+
+        request << "INSERT INTO profile_room (profile_ID, room_creator_ID, room_name) VALUES ("
+                << this->manager->ID
+                << ", "
+                << room_creator_ID
+                << ", '"
+                << room_name
+                << "')";
+
+        std::cout << request.str() << std::endl;
+
+        conn.query(request.str(), result);
+
+        request.str(std::string());
+
+        request << "DELETE FROM invites WHERE receiver_ID = "
+                << this->manager->ID 
+                << " AND room_creator_ID = "
+                << room_creator_ID
+                << " AND room_name = '"
+                << room_name
+                << "'";
+
+        std::cout << request.str() << std::endl;
+
+        conn.query(request.str(), result);
+
+        return DATA_BASE_COMPLETED_SUCCESSFULY;
+    } catch (boost::mysql::error_with_diagnostics &exception) {
+        std::cout << exception.get_diagnostics().server_message() << std::endl;
+        std::cout << exception.get_diagnostics().client_message() << std::endl;
+
+        return DATA_BASE_FAILED;
+    }
+}
+
+auto data_base_manager::delete_sended_invite(
+            u_int64_t receiver_ID, 
+            u_int64_t room_creator_ID, 
+            std::string room_name) -> DATA_BASE_EXECUTION_STATUS {
+    return this->delete_invite(this->manager->ID, 
+                               receiver_ID, 
+                               room_creator_ID,
+                               room_name);
+}
+
+auto data_base_manager::delete_received_invite(
+        u_int64_t sender_ID, 
+        u_int64_t room_creator_ID, 
+        std::string room_name) -> DATA_BASE_EXECUTION_STATUS {
+    return this->delete_invite(sender_ID,
+                               this->manager->ID, 
+                               room_creator_ID,
+                               room_name);
+}
+
+auto data_base_manager::delete_invite(
+        u_int64_t sender_ID,
+        u_int64_t receiver_ID, 
+        u_int64_t room_creator_ID, 
+        std::string room_name) -> DATA_BASE_EXECUTION_STATUS {
+    try {
+        if ((sender_ID != this->manager->ID) && (receiver_ID != this->manager->ID))
+            return DATA_BASE_THETE_IS_NO_ACCESS_FOR_THIS_INVITE;
+
+        std::stringstream request;
+
+        request << "SELECT * FROM invites WHERE sender_ID = "
+                << sender_ID
+                << " AND receiver_ID = "
+                << receiver_ID
+                << " AND room_creator_ID = "
+                << room_creator_ID
+                << " AND room_name = '"
+                << room_name
+                << "'";
+
+        std::cout << request.str() << std::endl;
+
+        conn.execute(request.str(), result);
+
+        auto invites = this->convert_data_base_response_to_matrix(result.rows());
+
+        if (!invites.size())
+            return DATA_BASE_THERE_IS_NO_INVITES_WITH_SUCH_PARAMETERS;
+
+        request << "DELETE FROM invites WHERE sender_ID = "
+                << sender_ID
+                << " AND receiver_ID = "
+                << this->manager->ID 
+                << " AND room_creator_ID = "
+                << room_creator_ID
+                << " AND room_name = '"
+                << room_name
+                << "'";
+
+        std::cout << request.str() << std::endl;
+
+        conn.query(request.str(), result);
+
+        return DATA_BASE_COMPLETED_SUCCESSFULY;
+    } catch (boost::mysql::error_with_diagnostics &exception) {
+        std::cout << exception.get_diagnostics().server_message() << std::endl;
+        std::cout << exception.get_diagnostics().client_message() << std::endl;
+
+        return DATA_BASE_FAILED;
+    }
+}
+
+
+// Join part
 auto data_base_manager::get_profile_rooms(std::vector<room> &result_rooms) -> DATA_BASE_EXECUTION_STATUS {
     try {
         struct profile profile;
@@ -1735,6 +1999,18 @@ auto data_base_manager::update_tables() -> void {
     } catch (boost::mysql::error_with_diagnostics &exception) {
         this->create_reviewers_table();
     }
+
+    try {
+        std::stringstream request;
+
+        request << "SELECT * FROM invites";
+
+        std::cout << request.str() << std::endl;
+
+        conn.query(request.str(), result);
+    } catch (boost::mysql::error_with_diagnostics &exception) {
+        this->create_invites_table();
+    }
 }
 
 auto data_base_manager::drop_tables() -> void {
@@ -1745,4 +2021,5 @@ auto data_base_manager::drop_tables() -> void {
     drop_table("configs");
     drop_table("assignees");
     drop_table("reviewers");
+    drop_table("invites");
 }

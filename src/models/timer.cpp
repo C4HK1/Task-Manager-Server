@@ -3,7 +3,12 @@
 
 #include "models/timer.h"
 
-timer::timer(time_t time_to_live) {
+timer::timer() {
+    auto creation_time = std::chrono::system_clock::now();
+    this->creation_time = this->convert_time_point_to_datetime(creation_time);
+}
+
+timer::timer(time_t time_to_live) : timer() {
     auto creation_time = std::chrono::system_clock::now();
     this->creation_time = this->convert_time_point_to_datetime(creation_time);
     this->deadline = this->convert_time_point_to_datetime(creation_time + std::chrono::minutes(time_to_live));

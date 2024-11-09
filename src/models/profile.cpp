@@ -11,14 +11,6 @@ profile::profile(std::vector<boost::mysql::field> profile) {
 }
 
 auto profile::to_json() const -> nlohmann::json {
-    u_int64_t ID = 0;
-    std::string name;
-    std::string login;
-    std::string password;
-
-    std::string email;
-    std::string phone;
-
     return {
             {"ID", this->ID},
             {"name", this->name},
@@ -30,16 +22,8 @@ auto profile::to_json() const -> nlohmann::json {
 }
 
 auto profile::to_public_json() const -> nlohmann::json {
-    u_int64_t ID = 0;
-    std::string name;
-    std::string login;
-    std::string password;
-
-    std::string email;
-    std::string phone;
-
     return {
-            {"ID", 0},
+            {"ID", this->ID},
             {"name", this->name},
             {"login", ""},
             {"password", ""},

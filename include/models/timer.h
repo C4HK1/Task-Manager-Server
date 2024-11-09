@@ -17,6 +17,7 @@ struct timer {
     boost::mysql::datetime creation_time;
     boost::mysql::datetime deadline;
 
+    timer();
     timer(time_t time_to_live);
 
     boost::mysql::datetime get_creation_time();
