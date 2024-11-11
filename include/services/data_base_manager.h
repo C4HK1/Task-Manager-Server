@@ -1,31 +1,6 @@
 #pragma once
 
-#include <boost/asio/ip/basic_resolver.hpp>
-#include <boost/exception/exception.hpp>
-#include <boost/mysql/datetime.hpp>
-#include <boost/mysql/error_code.hpp>
-#include <boost/mysql/error_with_diagnostics.hpp>
-#include <boost/mysql/time.hpp>
-#include <boost/url.hpp>
-#include <boost/beast/ssl.hpp>
-#include <boost/beast/core.hpp>
-#include <boost/beast/http.hpp>
-#include <boost/beast/version.hpp>
-#include <boost/asio.hpp>
-#include <boost/mysql/field_view.hpp>
-#include <boost/mysql/rows_view.hpp>
-#include <cstddef>
-#include <cstdint>
-#include <cstdlib>
-#include <ctime>
-#include <iostream>
-#include <boost/format.hpp>
 #include <boost/mysql/tcp_ssl.hpp>
-#include <nlohmann/json_fwd.hpp>
-#include <stdlib.h>
-#include <sys/types.h>
-#include <utility>
-#include <vector>
 
 class profile;
 class room; 

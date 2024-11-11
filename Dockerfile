@@ -1,20 +1,33 @@
-FROM alpine
+FROM archlinux
 
-RUN apk update
+RUN pacman-db-upgrade
 
-RUN apk add boost-dev \
+RUN pacman -Syyu --noconfirm
+
+RUN pacman -Syyu --noconfirm make \ 
     cmake \
-    linux-headers \
-    make \
-    g++ \
+    gcc \
+    git \
     nlohmann-json \
-    gtest-dev \
-    libressl-dev \
-    git
+    openssl \
+    linux-headers \
+    gtest \
+    wget
+
+RUN wget -c 'http://sourceforge.net/projects/boost/files/boost/1.83.0/boost_1_83_0.tar.bz2/download' && \
+    tar --bzip2 -xf download && \
+    cd boost_1_83_0 && \
+    ./bootstrap.sh && \
+    ./b2 install
+
+
 
 COPY . /app
 
 RUN cd /app && \
+    rm -rf libs && \
+    mkdir libs && \
+    cd libs && \
     rm -rf cpp-jwt && \
     git clone https://github.com/arun11299/cpp-jwt.git && \
     cd cpp-jwt && \
@@ -28,7 +41,7 @@ RUN cd /app && \
     mkdir build && \
     cd build && \
     cmake -DCMAKE_CXX_COMPILER=/usr/bin/g++ -DCMAKE_C_COMPILER=/usr/bin/gcc .. && \
-    make 
+    cmake --build . 
 
 WORKDIR /app/build
 

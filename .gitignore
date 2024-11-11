@@ -1,5 +1,4 @@
 nlohmann/
-libs/cpp-jwt/
 build/
 *.a
 test.yaml
