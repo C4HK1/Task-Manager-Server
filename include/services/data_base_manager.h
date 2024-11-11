@@ -44,14 +44,10 @@ enum DATA_BASE_EXECUTION_STATUS : u_int64_t {
     DATA_BASE_THERE_IS_NO_INVITES_WITH_SUCH_PARAMETERS,
     DATA_BASE_THETE_IS_NO_ACCESS_FOR_THIS_INVITE,
 
-    //Messages part
-    DATA_BASE_THERE_IS_NO_MESSAGE_WITH_SUCH_PARAMETERS,
-    DATA_BASE_THETE_IS_NO_ACCESS_FOR_THIS_MESSAGE,
-
     //Join part
 };
 
-constexpr size_t DATA_BASE_SHIFT{5};
+constexpr size_t DATA_BASE_SHIFT{6};
 
 constexpr char DEFAULT_MANAGER_LOGIN[]{};
 constexpr char DEFAULT_MANAGER_PASSWORD[]{};
@@ -219,27 +215,39 @@ public:
     auto create_invite(
             const u_int64_t receiver_ID, 
             const u_int64_t room_creator_ID, 
-            const std::string room_name) -> DATA_BASE_EXECUTION_STATUS;
+            const std::string room_name,
+            invite &result_invite) -> DATA_BASE_EXECUTION_STATUS;
+
+    auto get_invite(
+            const u_int64_t sender_ID, 
+            const u_int64_t receiver_ID, 
+            const u_int64_t room_creator_ID, 
+            const std::string room_name,
+            invite &result_invite) -> DATA_BASE_EXECUTION_STATUS;
     
     auto accept_invite(
             u_int64_t room_creator_ID, 
-            std::string room_name) -> DATA_BASE_EXECUTION_STATUS;
+            std::string room_name,
+            invite &accepted_invite) -> DATA_BASE_EXECUTION_STATUS;
 
     auto delete_sended_invite(
             u_int64_t receiver_ID, 
             u_int64_t room_creator_ID, 
-            std::string room_name) -> DATA_BASE_EXECUTION_STATUS;
+            std::string room_name,
+            invite &deleted_invite) -> DATA_BASE_EXECUTION_STATUS;
 
     auto delete_received_invite(
             u_int64_t sender_ID, 
             u_int64_t room_creator_ID, 
-            std::string room_name) -> DATA_BASE_EXECUTION_STATUS;
+            std::string room_name,
+            invite &deleted_invite) -> DATA_BASE_EXECUTION_STATUS;
         
     auto delete_invite(
             u_int64_t receiver_ID, 
             u_int64_t sender_ID, 
             u_int64_t room_creator_ID, 
-            std::string room_name) -> DATA_BASE_EXECUTION_STATUS;
+            std::string room_name,
+            invite &deleted_invite) -> DATA_BASE_EXECUTION_STATUS;
 
 
     //Join part

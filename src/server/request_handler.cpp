@@ -396,18 +396,24 @@ auto request_handler::post_request_handler() -> void {
         auto room_creator_ID = this->request_data.at("room creator ID");
         auto room_name = this->request_data.at("room name");
 
-        server_status::data_base_status = this->data_base->create_invite(receiver_ID, room_creator_ID, room_name);
+        invite result_invite;
+
+        server_status::data_base_status = this->data_base->create_invite(receiver_ID, room_creator_ID, room_name, result_invite);
 
         response.push_back(nlohmann::json::object_t::value_type("status", server_status::get_status()));
+        response.push_back(nlohmann::json::object_t::value_type("invite", result_invite.to_json()));
         
         std::cout << "creating invite response " << response << std::endl;
     } else if (!(*request).target().find("/AcceptInvite/")) {
         auto room_creator_ID = this->request_data.at("room creator ID");
         auto room_name = this->request_data.at("room name");
 
-        server_status::data_base_status = this->data_base->accept_invite(room_creator_ID, room_name);
+        invite accepted_invite;
+
+        server_status::data_base_status = this->data_base->accept_invite(room_creator_ID, room_name, accepted_invite);
 
         response.push_back(nlohmann::json::object_t::value_type("status", server_status::get_status()));
+        response.push_back(nlohmann::json::object_t::value_type("invite", accepted_invite.to_json()));
         
         std::cout << "accepting invite response " << response << std::endl;
     } else if (!(*request).target().find("/DeleteSendedInvite/")) {
@@ -415,9 +421,12 @@ auto request_handler::post_request_handler() -> void {
         auto room_creator_ID = this->request_data.at("room creator ID");
         auto room_name = this->request_data.at("room name");
 
-        server_status::data_base_status = this->data_base->delete_sended_invite(receiver_ID, room_creator_ID, room_name);
+        invite deleted_invite;
 
+        server_status::data_base_status = this->data_base->delete_sended_invite(receiver_ID, room_creator_ID, room_name, deleted_invite);
+        
         response.push_back(nlohmann::json::object_t::value_type("status", server_status::get_status()));
+        response.push_back(nlohmann::json::object_t::value_type("invite", deleted_invite.to_json()));
         
         std::cout << "deleting sended invite response " << response << std::endl;
     } else if (!(*request).target().find("/DeleteReceivedInvite/")) {
@@ -425,10 +434,13 @@ auto request_handler::post_request_handler() -> void {
         auto room_creator_ID = this->request_data.at("room creator ID");
         auto room_name = this->request_data.at("room name");
 
-        server_status::data_base_status = this->data_base->delete_received_invite(sender_ID, room_creator_ID, room_name);
+        invite deleted_invite;
+
+        server_status::data_base_status = this->data_base->delete_received_invite(sender_ID, room_creator_ID, room_name, deleted_invite);
 
         response.push_back(nlohmann::json::object_t::value_type("status", server_status::get_status()));
-        
+        response.push_back(nlohmann::json::object_t::value_type("invite", deleted_invite.to_json()));
+
         std::cout << "deleting received invite response " << response << std::endl;
     } else {
         (*this->response).result(http::status::not_found);

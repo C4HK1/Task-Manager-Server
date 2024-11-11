@@ -1466,7 +1466,8 @@ auto data_base_manager::remove_task_from_reviewer(
 auto data_base_manager::create_invite(
         const u_int64_t receiver_ID, 
         const u_int64_t room_creator_ID, 
-        const std::string room_name) -> DATA_BASE_EXECUTION_STATUS {
+        const std::string room_name,
+        invite &result_invite) -> DATA_BASE_EXECUTION_STATUS {
     try {
         struct profile member;
 
@@ -1477,33 +1478,35 @@ auto data_base_manager::create_invite(
 
         struct room room;
 
-        status = this->get_room(this->manager->ID, room_name, room);
+        status = this->get_room(room_creator_ID, room_name, room);
 
         if (status)
             return  status;
 
-        std::stringstream request;
+        status = this->get_invite(this->manager->ID,
+                                  receiver_ID, 
+                                  room.creator_ID, 
+                                  room.name, 
+                                  result_invite);
 
-        request << "SELECT * FROM invites WHERE sender_ID = "
-            << this->manager->ID
-            << " AND receiver_ID = "
-            << receiver_ID
-            << " AND room_creator_ID = "
-            << room.creator_ID
-            << " AND room_name = '"
-            << room.name
-            << "'";
-
-        std::cout << request.str() << std::endl;
-
-        conn.execute(request.str(), result);
-
-        auto invites = this->convert_data_base_response_to_matrix(result.rows());
-
-        if (invites.size())
+        if (!status)
             return DATA_BASE_INVITE_ALREADY_SENDED;
 
-        request.str(std::string());
+        std::vector<profile> result_profiles;
+
+        status = this->get_room_profiles(room.creator_ID, room.name, result_profiles);
+
+        if (status)
+            return status;
+
+        std::cout << result_profiles.size() << std::endl;
+
+        for (auto profile : result_profiles) {
+            if (receiver_ID == profile.ID)
+                return DATA_BASE_THIS_PROFILE_IS_ALREADY_EXIST_IN_THIS_ROOM;
+        }
+
+        std::stringstream request;
 
         request << "INSERT INTO invites (sender_ID, receiver_ID, room_creator_ID, room_name) VALUES ("
             << this->manager->ID
@@ -1519,7 +1522,11 @@ auto data_base_manager::create_invite(
 
         conn.query(request.str(), result);
 
-        return DATA_BASE_COMPLETED_SUCCESSFULY;
+        return this->get_invite(this->manager->ID,
+                                receiver_ID, 
+                                room.creator_ID, 
+                                room.name, 
+                                result_invite);
     } catch (boost::mysql::error_with_diagnostics &exception) {
         std::cout << exception.get_diagnostics().server_message() << std::endl;
         std::cout << exception.get_diagnostics().client_message() << std::endl;
@@ -1528,9 +1535,68 @@ auto data_base_manager::create_invite(
     }
 }    
 
+auto data_base_manager::get_invite(
+        const u_int64_t sender_ID, 
+        const u_int64_t receiver_ID, 
+        const u_int64_t room_creator_ID, 
+        const std::string room_name,
+        invite &result_invite) -> DATA_BASE_EXECUTION_STATUS {
+    try {
+        if (!((sender_ID == this->manager->ID) || (receiver_ID == this->manager->ID)))
+            return DATA_BASE_THETE_IS_NO_ACCESS_FOR_THIS_INVITE;
+
+        std::stringstream request;
+        
+        request << "SELECT * FROM invites WHERE sender_ID = "
+            << sender_ID
+            << " AND receiver_ID = "
+            << receiver_ID
+            << " AND room_creator_ID = "
+            << room_creator_ID
+            << " AND room_name = '"
+            << room_name
+            << "'";
+
+        std::cout << request.str() << std::endl;
+
+        conn.execute(request.str(), result);
+
+        auto invites = this->convert_data_base_response_to_matrix(result.rows());
+    
+        if (!invites.size())
+            return DATA_BASE_THERE_IS_NO_INVITES_WITH_SUCH_PARAMETERS;
+
+        result_invite = invites.at(0); 
+
+        profile sender, receiver;
+
+        auto status = this->get_profile_by_ID(sender_ID, sender);
+
+        if (status)
+            return status;
+
+        result_invite.sender_name = sender.name;
+
+        status = this->get_profile_by_ID(receiver_ID, receiver);
+
+        if (status)
+            return status;
+
+        result_invite.receiver_name = receiver.name;
+
+        return DATA_BASE_COMPLETED_SUCCESSFULY;
+    } catch (boost::mysql::error_with_diagnostics &exception) {
+        std::cout << exception.get_diagnostics().server_message() << std::endl;
+        std::cout << exception.get_diagnostics().client_message() << std::endl;
+
+        return DATA_BASE_FAILED;
+    }
+}
+
 auto data_base_manager::accept_invite(
         u_int64_t room_creator_ID, 
-        std::string room_name) -> DATA_BASE_EXECUTION_STATUS {
+        std::string room_name,
+        invite &accepted_invite) -> DATA_BASE_EXECUTION_STATUS {
     try {
         std::stringstream request;
 
@@ -1550,6 +1616,25 @@ auto data_base_manager::accept_invite(
 
         if (!invites.size())
             return DATA_BASE_THERE_IS_NO_INVITES_WITH_SUCH_PARAMETERS;
+
+        accepted_invite = invites.at(0);
+
+        profile sender, receiver;
+
+        auto status = this->get_profile_by_ID(invites.at(0).at(0).get_uint64(), sender);
+
+        if (status)
+            return status;
+
+        accepted_invite.sender_name = sender.name;
+
+        status = this->get_profile_by_ID(this->manager->ID, receiver);
+
+        if (status)
+            return status;
+
+        accepted_invite.receiver_name = receiver.name;
+
 
         request.str(std::string());
 
@@ -1591,57 +1676,47 @@ auto data_base_manager::accept_invite(
 auto data_base_manager::delete_sended_invite(
             u_int64_t receiver_ID, 
             u_int64_t room_creator_ID, 
-            std::string room_name) -> DATA_BASE_EXECUTION_STATUS {
+            std::string room_name,
+            invite &deleted_invite) -> DATA_BASE_EXECUTION_STATUS {
     return this->delete_invite(this->manager->ID, 
                                receiver_ID, 
                                room_creator_ID,
-                               room_name);
+                               room_name,
+                               deleted_invite);
 }
 
 auto data_base_manager::delete_received_invite(
         u_int64_t sender_ID, 
         u_int64_t room_creator_ID, 
-        std::string room_name) -> DATA_BASE_EXECUTION_STATUS {
+        std::string room_name,
+        invite &deleted_invite) -> DATA_BASE_EXECUTION_STATUS {
     return this->delete_invite(sender_ID,
                                this->manager->ID, 
                                room_creator_ID,
-                               room_name);
+                               room_name,
+                               deleted_invite);
 }
 
 auto data_base_manager::delete_invite(
         u_int64_t sender_ID,
         u_int64_t receiver_ID, 
         u_int64_t room_creator_ID, 
-        std::string room_name) -> DATA_BASE_EXECUTION_STATUS {
+        std::string room_name,
+        invite &deleted_invite) -> DATA_BASE_EXECUTION_STATUS {
     try {
-        if ((sender_ID != this->manager->ID) && (receiver_ID != this->manager->ID))
-            return DATA_BASE_THETE_IS_NO_ACCESS_FOR_THIS_INVITE;
+        auto status = this->get_invite(sender_ID, receiver_ID, room_creator_ID, room_name, deleted_invite);
+        
+        if (status)
+            return DATA_BASE_THERE_IS_NO_INVITES_WITH_SUCH_PARAMETERS;
 
         std::stringstream request;
 
-        request << "SELECT * FROM invites WHERE sender_ID = "
-                << sender_ID
-                << " AND receiver_ID = "
-                << receiver_ID
-                << " AND room_creator_ID = "
-                << room_creator_ID
-                << " AND room_name = '"
-                << room_name
-                << "'";
-
-        std::cout << request.str() << std::endl;
-
-        conn.execute(request.str(), result);
-
-        auto invites = this->convert_data_base_response_to_matrix(result.rows());
-
-        if (!invites.size())
-            return DATA_BASE_THERE_IS_NO_INVITES_WITH_SUCH_PARAMETERS;
+        request.str(std::string());
 
         request << "DELETE FROM invites WHERE sender_ID = "
                 << sender_ID
                 << " AND receiver_ID = "
-                << this->manager->ID 
+                << receiver_ID
                 << " AND room_creator_ID = "
                 << room_creator_ID
                 << " AND room_name = '"
@@ -1761,13 +1836,13 @@ auto data_base_manager::get_room_profiles(const u_int64_t room_creator_ID, const
 
         std::stringstream request;
 
-        request << "SELECT profiles.* FROM (SELECT * FROM profile_room WHERE profile_ID = "
+        request << "SELECT profiles.* FROM (SELECT profile_ID FROM (SELECT room_creator_ID, room_name FROM profile_room WHERE profile_ID = "
                 << this->manager->ID
-                << ") profile_room_with_access INNER JOIN profiles ON profile_room_with_access.profile_ID = profiles.ID AND profile_room_with_access.room_creator_ID = "
-                << room.creator_ID
-                << " AND profile_room_with_access.room_name = '"
-                << room.name
-                << "'";
+                << ") rooms_with_access INNER JOIN profile_room ON profile_room.room_creator_ID = rooms_with_access.room_creator_ID AND profile_room.room_name = rooms_with_access.room_name AND profile_room.room_creator_ID = "
+                << room_creator_ID
+                << " AND profile_room.room_name = '"
+                << room_name
+                << "') room_profiles_ID INNER JOIN profiles ON room_profiles_ID.profile_ID = profiles.ID";
 
         std::cout << request.str() << std::endl;
 
