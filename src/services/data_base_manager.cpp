@@ -21,6 +21,7 @@ using namespace boost::mysql;
 
 // Object part
 data_base_manager::data_base_manager(
+        const u_int64_t &manager_ID,
         const std::string &manager_login, 
         const std::string &manager_password, 
         const std::string &data_base_host, 
@@ -49,7 +50,9 @@ data_base_manager::data_base_manager(
     try {
         std::stringstream request;
 
-        request << "SELECT * FROM profiles WHERE login = '"
+        request << "SELECT * FROM profiles WHERE ID = "
+                << manager_ID
+                << " AND login = '"
                 << manager_login
                 << "' AND password = '"
                 << manager_password
@@ -692,7 +695,7 @@ auto data_base_manager::delete_profile() -> DATA_BASE_EXECUTION_STATUS
     }
 }
 
-auto data_base_manager::loggin_profile(const std::string &login, const std::string &password) -> DATA_BASE_EXECUTION_STATUS
+auto data_base_manager::loggin_profile(const std::string &login, const std::string &password, profile &result_profile) -> DATA_BASE_EXECUTION_STATUS
 {
     try {     
         std::stringstream request;
@@ -711,6 +714,7 @@ auto data_base_manager::loggin_profile(const std::string &login, const std::stri
 
         for (auto profile : profiles) {
             *this->manager = profile;
+            result_profile = profile;
 
             return DATA_BASE_COMPLETED_SUCCESSFULY;
         }
@@ -724,8 +728,8 @@ auto data_base_manager::loggin_profile(const std::string &login, const std::stri
     }
 }
 
-auto data_base_manager::profile_authenticate() -> DATA_BASE_EXECUTION_STATUS {
-    return this->loggin_profile(this->manager->login, this->manager->password);
+auto data_base_manager::profile_authenticate(profile &result_profile) -> DATA_BASE_EXECUTION_STATUS {
+    return this->loggin_profile(this->manager->login, this->manager->password, result_profile);
 }
 
 auto data_base_manager::get_profiles_with_substr_in_name(

@@ -2,7 +2,6 @@
 #include <string>
 #include <sys/types.h>
 #include <time.h>
-#include <iostream>
 
 #include "services/JWT_manager.h"
 #include "services/file_parser.h"
@@ -40,10 +39,10 @@ auto JWT_manager::validate_jwt_token(http::request<http::dynamic_body> request, 
     return JWT_NO_TOKEN_HEADER;
 }
 
-auto JWT_manager::create_jwt(const std::string &login, const std::string &password, std::string &result_jwt) -> JWT_EXECUTION_STATUS {
+auto JWT_manager::create_jwt(const u_int64_t ID, const std::string &login, const std::string &password, std::string &result_jwt) -> JWT_EXECUTION_STATUS {
     time_t current_time = time(NULL);
 
-    jwt::jwt_object object{jwt::params::algorithm("RS256"), jwt::params::secret(private_key_), jwt::params::payload({{"login", login}, {"password", password}, {"destroy_time", std::to_string(current_time + TIME_TO_LIVE)}})};
+    jwt::jwt_object object{jwt::params::algorithm("RS256"), jwt::params::secret(private_key_), jwt::params::payload({{"ID", std::to_string(ID)}, {"login", login}, {"password", password}, {"destroy_time", std::to_string(current_time + TIME_TO_LIVE)}})};
 
     std::error_code error_code{};
     auto signature = object.signature(error_code);

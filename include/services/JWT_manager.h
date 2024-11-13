@@ -32,5 +32,5 @@ public:
     JWT_manager(const std::string  &public_key_path = DEFAULT_PUB_KEY_POSITION, const std::string  &private_key_path = DEFAULT_KEY_POSITION);
 
     auto validate_jwt_token(http::request<http::dynamic_body> request, json_t &result_data) -> JWT_EXECUTION_STATUS;
-    auto create_jwt(const std::string &login, const std::string &password, std::string &result_jwt) -> JWT_EXECUTION_STATUS;
+    auto create_jwt(const u_int64_t ID, const std::string &login, const std::string &password, std::string &result_jwt) -> JWT_EXECUTION_STATUS;
 };

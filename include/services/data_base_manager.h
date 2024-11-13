@@ -50,6 +50,7 @@ enum DATA_BASE_EXECUTION_STATUS : u_int64_t {
 
 constexpr size_t DATA_BASE_SHIFT{6};
 
+constexpr char DEFAULT_MANAGER_ID = 0;
 constexpr char DEFAULT_MANAGER_LOGIN[]{};
 constexpr char DEFAULT_MANAGER_PASSWORD[]{};
 constexpr char ENV_DATA_BASE_HOST[]{"DATA_BASE_HOST"};
@@ -91,6 +92,7 @@ class data_base_manager {
 public:
     //Object part
     data_base_manager(
+            const u_int64_t &manager_ID = DEFAULT_MANAGER_ID,
             const std::string &manager_login = DEFAULT_MANAGER_LOGIN,
             const std::string &manager_password = DEFAULT_MANAGER_PASSWORD, 
             const std::string &data_base_host = getenv(ENV_DATA_BASE_HOST) ? getenv(ENV_DATA_BASE_HOST) : DEFAULT_DATA_BASE_HOST, 
@@ -135,9 +137,9 @@ public:
        
     auto delete_profile() -> DATA_BASE_EXECUTION_STATUS;
 
-    auto loggin_profile(const std::string &login, const std::string &password) -> DATA_BASE_EXECUTION_STATUS;
+    auto loggin_profile(const std::string &login, const std::string &password, profile &result_profile) -> DATA_BASE_EXECUTION_STATUS;
 
-    auto profile_authenticate() -> DATA_BASE_EXECUTION_STATUS;
+    auto profile_authenticate(profile &result_profile) -> DATA_BASE_EXECUTION_STATUS;
 
 
     //Room part

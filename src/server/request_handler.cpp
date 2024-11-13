@@ -9,6 +9,10 @@
 #include "models/task.h" 
 #include "models/config.h" 
 #include "models/invite.h" 
+#include <cstddef>
+#include <nlohmann/json_fwd.hpp>
+#include <string>
+#include <sys/types.h>
 
 request_handler::request_handler(http::request<http::dynamic_body> *request, http::response<http::dynamic_body> *response) : 
         request(request),
@@ -26,17 +30,19 @@ request_handler::request_handler(http::request<http::dynamic_body> *request, htt
               << this->request_data
               << "'\n";
 
+    u_int64_t header_ID = 0;
     std::string header_login;
     std::string header_password;
 
     try {
+        header_ID = std::stoi(std::string(this->request_data.at("ID")));
         header_login = this->request_data.at("login");
         header_password = this->request_data.at("password");
-    } catch(nlohmann::json::exception &exeption) {
-        std::cout << "can't decode JWT" << std::endl;
+    } catch(nlohmann::json::exception &exception) {
+        std::cout << exception.what() << std::endl;
     }
 
-    this->data_base = new data_base_manager(header_login, header_password);
+    this->data_base = new data_base_manager(header_ID, header_login, header_password);
 
     try {   
         this->request_data = nlohmann::json::parse(beast::buffers_to_string((*this->request).body().data()));
@@ -55,24 +61,36 @@ auto request_handler::get_request_handler() -> void {
     nlohmann::json response;
     
     if (!(*this->request).target().find("/LogginProfile/")) {
-        auto login = this->request_data.at("login");
-        auto password = this->request_data.at("password");
+        try {
+            auto login = this->request_data.at("login");
+            auto password = this->request_data.at("password");
+        
+            struct profile profile;
 
-        server_status::data_base_status = this->data_base->loggin_profile(login, password);
+            server_status::data_base_status = this->data_base->loggin_profile(login, password, profile);
 
-        std::string result_jwt;
+            std::string result_jwt;
 
-        server_status::JWT_status = jwt->create_jwt(login, password, result_jwt);
+            server_status::JWT_status = jwt->create_jwt(profile.ID, profile.login, profile.password, result_jwt);
 
-        if (server_status::data_base_status)
-            result_jwt = "";
-	
-        response.push_back(nlohmann::json::object_t::value_type("status", server_status::get_status()));
-        response.push_back(nlohmann::json::object_t::value_type("JWT", result_jwt));
+            if (server_status::data_base_status)
+                result_jwt = "";
+        
+            response.push_back(nlohmann::json::object_t::value_type("status", server_status::get_status()));
+            response.push_back(nlohmann::json::object_t::value_type("JWT", result_jwt));
+        } catch(boost::mysql::error_with_diagnostics &exception) {
+            std::cout << exception.get_diagnostics().server_message() << std::endl;
+            std::cout << exception.get_diagnostics().client_message() << std::endl;
+            
+            server_status::request_status = REQUEST_INVALID_REQUEST_BODY_DATA;
+            response.push_back(nlohmann::json::object_t::value_type("status", server_status::get_status()));
+        }
 
         std::cout << "profile loggining response: " << response << std::endl;
     } else if (!(*this->request).target().find("/ProfileAuthentication/")) {
-        server_status::data_base_status = this->data_base->profile_authenticate();
+        profile result_profile;
+
+        server_status::data_base_status = this->data_base->profile_authenticate(result_profile);
         
         response.push_back(nlohmann::json::object_t::value_type("status", server_status::get_status()));
     
@@ -290,7 +308,7 @@ auto request_handler::post_request_handler() -> void {
         
         std::string result_jwt;
 
-        server_status::JWT_status = jwt->create_jwt(login, password, result_jwt);
+        server_status::JWT_status = jwt->create_jwt(profile.ID, profile.login, profile.password, result_jwt);
 
         if (server_status::data_base_status)
             result_jwt = "";
