@@ -1,6 +1,7 @@
 #pragma once
 
 #include <boost/mysql/tcp_ssl.hpp>
+#include <sys/types.h>
 
 class profile;
 class room; 
@@ -68,7 +69,7 @@ class data_base_manager {
 
     profile *manager;
 
-    //Table creation part
+    //Table part
     auto create_profiles_table() -> void;
     auto create_rooms_table() -> void;
     auto create_profile_room_table() -> void;
@@ -77,7 +78,8 @@ class data_base_manager {
     auto create_assignees_table() -> void;
     auto create_reviewers_table() -> void;
     auto create_invites_table() -> void;
-    auto create_message_tabel() -> void;  
+
+    auto clean_room_table() -> void;
 
     //Data base table management part
     auto convert_data_base_response_to_matrix(const boost::mysql::rows_view &rows) -> std::vector<std::vector<boost::mysql::field>>;
@@ -130,7 +132,7 @@ public:
     auto get_profile_received_invites(std::vector<invite> &result_invites) -> DATA_BASE_EXECUTION_STATUS;
     
     auto get_profile_sended_invites(std::vector<invite> &result_invites) -> DATA_BASE_EXECUTION_STATUS;
-    
+       
     auto delete_profile() -> DATA_BASE_EXECUTION_STATUS;
 
     auto loggin_profile(const std::string &login, const std::string &password) -> DATA_BASE_EXECUTION_STATUS;
@@ -148,6 +150,10 @@ public:
             const u_int64_t room_creator_ID, 
             const std::string &room_name, 
             room &result_room) -> DATA_BASE_EXECUTION_STATUS;
+
+    auto leave_from_room(
+            u_int64_t room_creator_ID, 
+            std::string room_name) -> DATA_BASE_EXECUTION_STATUS;
 
     auto delete_room(
             const u_int64_t room_creator_ID, 

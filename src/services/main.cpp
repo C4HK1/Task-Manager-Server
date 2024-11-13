@@ -7,7 +7,6 @@
 int main()
 {
     data_base_manager manager("1", "1", "0.0.0.0", "3306", "myuser", "secret", "mydatabase");
-    // data_base_manager manager;
 
     std::cout << manager.get_manager().to_json() << std::endl;
 
@@ -25,6 +24,8 @@ int main()
     manager.print_tabel("assignees");
     std::cout << "viewers: \n";
     manager.print_tabel("reviewers");
+    std::cout << "invites: \n";
+    manager.print_tabel("invites");
 
     std::cout << "=============================\n";
 
@@ -42,7 +43,8 @@ int main()
     //     std::cout << i.to_json() << std::endl;
     // }
 
-    // std::cout << manager.create_profile("C4H9", "123", "123", "s@mail.ru", "666", profile) << std::endl;
+    // std::cout << manager.create_profile("C4H9", "1", "1", "s@mail.ru", "666", profile) << std::endl;
+    std::cout << manager.leave_from_room(3, "room1") << std::endl;
     // std::cout << manager.delete_profile() << std::endl;
     // std::cout << manager.get_profile_config(config) << std::endl;
     // std::cout << config.to_json() << std::endl;
@@ -116,6 +118,8 @@ int main()
     manager.print_tabel("assignees");
     std::cout << "viewers: \n";
     manager.print_tabel("reviewers");
+    std::cout << "invites: \n";
+    manager.print_tabel("invites");
 
     return 0;
 }

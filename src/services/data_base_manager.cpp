@@ -74,6 +74,8 @@ data_base_manager::data_base_manager(
 }
 
 data_base_manager::~data_base_manager() {
+    this->clean_room_table();
+
     delete this->manager;
     conn.close();
 }
@@ -82,7 +84,7 @@ auto data_base_manager::get_manager() -> profile {
     return *this->manager;
 }
 
-//Table creation part
+//Table part
 auto data_base_manager::create_profiles_table() -> void {
     try {
         conn.query(
@@ -200,7 +202,7 @@ auto data_base_manager::create_assignees_table() -> void {
                 task_name VARCHAR(50) NOT NULL,
 
                 PRIMARY KEY (assignee_ID, room_creator_ID, room_name, task_name),
-                FOREIGN KEY (assignee_ID) REFERENCES profiles(ID),
+                FOREIGN KEY (assignee_ID) REFERENCES profiles(ID) ON DELETE CASCADE,
                 FOREIGN KEY (room_creator_ID, room_name, task_name) REFERENCES tasks(room_creator_ID, room_name, name) ON DELETE CASCADE
             )
         )%", result);
@@ -221,7 +223,7 @@ auto data_base_manager::create_reviewers_table() -> void {
                 task_name VARCHAR(50) NOT NULL,
 
                 PRIMARY KEY (reviewer_ID, room_creator_ID, room_name, task_name),
-                FOREIGN KEY (reviewer_ID) REFERENCES profiles(ID),
+                FOREIGN KEY (reviewer_ID) REFERENCES profiles(ID) ON DELETE CASCADE,
                 FOREIGN KEY (room_creator_ID, room_name, task_name) REFERENCES tasks(room_creator_ID, room_name, name) ON DELETE CASCADE
             )
         )%", result);
@@ -253,21 +255,20 @@ auto data_base_manager::create_invites_table() -> void {
     }
 }
 
-auto data_base_manager::create_message_tabel() -> void {
-try {
-        conn.query(
-        R"%(
-            CREATE TABLE messages (
-                ID BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT NOT NULL UNIQUE,
-                sender_ID BIGINT UNSIGNED NOT NULL UNIQUE,
-                receiver_ID BIGINT UNSIGNED NOT NULL UNIQUE,
-                type BIGINT UNSIGNED NOT NULL,
-                creation_time DATETIME,
-                is_viewed BOOLEAN NOD NULL DEFAULT 0,
-
-                FOREIGN KEY (sender_ID) REFERENCES profiles(ID) ON DELETE CASCADE,
-                FOREIGN KEY (receiver_ID) REFERENCES profiles(ID) ON DELETE CASCADE,
-            )
+auto data_base_manager::clean_room_table() -> void {
+    try {
+    conn.query(R"%(
+            DELETE rooms FROM rooms LEFT JOIN
+            (SELECT rooms.creator_ID, rooms.name FROM rooms INNER JOIN
+            (SELECT profile_room.room_creator_ID AS profile_room_room_creator_ID, profile_room.room_name AS profile_room_room_name, invites.room_creator_ID AS invites_room_creator_ID, invites.room_name AS invites_room_name 
+            FROM profile_room
+            LEFT JOIN invites ON profile_room.room_creator_ID = invites.room_creator_ID AND profile_room.room_name = invites.room_name
+            UNION ALL
+            SELECT profile_room.room_creator_ID AS profile_room_room_creator_ID, profile_room.room_name AS profile_room_room_name, invites.room_creator_ID AS invites_room_creator_ID, invites.room_name AS invites_room_name 
+            FROM profile_room
+            RIGHT JOIN invites ON profile_room.room_creator_ID = invites.room_creator_ID AND profile_room.room_name = invites.room_name
+            WHERE profile_room.room_creator_ID IS NULL AND profile_room.room_name IS NULL) profile_room_invites ON (rooms.creator_ID = profile_room_invites.profile_room_room_creator_ID AND rooms.name = profile_room_invites.profile_room_room_name) OR (rooms.creator_ID = profile_room_invites.invites_room_creator_ID AND rooms.name = profile_room_invites.invites_room_name)) active_rooms
+            ON rooms.creator_ID = active_rooms.creator_ID AND rooms.name = active_rooms.name  WHERE active_rooms.creator_ID IS NULL AND active_rooms.name IS NULL
         )%", result);
     } catch (boost::mysql::error_with_diagnostics &exception) {
         std::cout << exception.get_diagnostics().server_message() << std::endl;
@@ -883,6 +884,51 @@ auto data_base_manager::get_room(
         }
 
         return DATA_BASE_THERE_IS_NO_ROOM_WITH_SUCH_PARAMETERS;
+    } catch (boost::mysql::error_with_diagnostics &exception) {
+        std::cout << exception.get_diagnostics().server_message();
+        std::cout << exception.get_diagnostics().client_message();
+
+        return DATA_BASE_FAILED;
+    }
+}
+
+auto data_base_manager::leave_from_room(
+        u_int64_t room_creator_ID, 
+        std::string room_name) -> DATA_BASE_EXECUTION_STATUS {
+    try {
+        std::stringstream request;
+
+        request << "SELECT * FROM profile_room WHERE room_creator_ID = "
+                << room_creator_ID
+                << " AND room_name = '"
+                << room_name
+                << "' AND profile_ID = "
+                << this->manager->ID;
+
+        std::cout << request.str() << std::endl;
+
+        conn.execute(request.str(), result);
+
+        auto profile_rooms = this->convert_data_base_response_to_matrix(result.rows());
+
+        if (!profile_rooms.size())
+            return DATA_BASE_ROOM_ACCESS_ERROR;
+
+        request.str(std::string());
+
+        request << "DELETE FROM profile_room WHERE room_creator_ID = "
+                << room_creator_ID
+                << " AND profile_ID = "
+                << this->manager->ID
+                << " AND room_name = '"
+                <<  room_name
+                << "'";
+
+        std::cout << request.str() << std::endl;
+
+        conn.execute(request.str(), result);
+
+        return DATA_BASE_COMPLETED_SUCCESSFULY;
     } catch (boost::mysql::error_with_diagnostics &exception) {
         std::cout << exception.get_diagnostics().server_message();
         std::cout << exception.get_diagnostics().client_message();
@@ -2013,18 +2059,6 @@ auto data_base_manager::update_tables() -> void {
         conn.query(request.str(), result);
     } catch (boost::mysql::error_with_diagnostics &exception) {
         this->create_profile_room_table();
-    }
-
-    try {
-        std::stringstream request;
-
-        request << "SELECT * FROM tasks";
-
-        std::cout << request.str() << std::endl;
-
-        conn.query(request.str(), result);
-    } catch (boost::mysql::error_with_diagnostics &exception) {
-        this->create_tasks_table();
     }
 
     try {
