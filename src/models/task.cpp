@@ -2,6 +2,7 @@
 #include <boost/mysql/row.hpp>
 #include <ctime>
 #include <nlohmann/json_fwd.hpp>
+#include <iostream>
 
 #include "models/timer.h"
 #include "models/task.h"

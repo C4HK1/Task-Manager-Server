@@ -6,7 +6,7 @@
 
 int main()
 {
-    data_base_manager manager("1", "1", "0.0.0.0", "3306", "myuser", "secret", "mydatabase");
+    data_base_manager manager(1, "1", "1", "0.0.0.0", "3306", "myuser", "secret", "mydatabase");
 
     std::cout << manager.get_manager().to_json() << std::endl;
 
@@ -44,7 +44,7 @@ int main()
     // }
 
     // std::cout << manager.create_profile("C4H9", "1", "1", "s@mail.ru", "666", profile) << std::endl;
-    std::cout << manager.leave_from_room(3, "room1") << std::endl;
+    // std::cout << manager.leave_from_room(3, "room1") << std::endl;
     // std::cout << manager.delete_profile() << std::endl;
     // std::cout << manager.get_profile_config(config) << std::endl;
     // std::cout << config.to_json() << std::endl;

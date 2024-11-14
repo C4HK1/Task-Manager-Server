@@ -166,7 +166,6 @@ auto data_base_manager::create_tasks_table() -> void {
                 deadline DATETIME,
 
                 PRIMARY KEY (room_creator_ID, room_name, name),
-                FOREIGN KEY (creator_ID) REFERENCES profiles(ID) ON DELETE SET NULL,
                 FOREIGN KEY (room_creator_ID, room_name) REFERENCES rooms(creator_ID, name) ON DELETE CASCADE
             )
         )%", result);
@@ -241,10 +240,10 @@ auto data_base_manager::create_invites_table() -> void {
         conn.query(
         R"%(
             CREATE TABLE invites (
-                sender_ID BIGINT UNSIGNED NOT NULL UNIQUE,
-                receiver_ID BIGINT UNSIGNED NOT NULL UNIQUE,
+                sender_ID BIGINT UNSIGNED NOT NULL,
+                receiver_ID BIGINT UNSIGNED NOT NULL,
                 room_creator_ID BIGINT UNSIGNED NOT NULL,
-                room_name VARCHAR(50) UNIQUE NOT NULL,
+                room_name VARCHAR(50) NOT NULL,
 
                 PRIMARY KEY (sender_ID, receiver_ID, room_creator_ID, room_name),
                 FOREIGN KEY (sender_ID) REFERENCES profiles(ID) ON DELETE CASCADE,
@@ -510,10 +509,10 @@ auto data_base_manager::get_profile_assigned_tasks(std::vector<task> &result_tas
 
             auto status = this->get_profile_by_ID(curr_task.creator_ID, task_creator);
 
-            if (status)
-                return status;
-
-            curr_task.creator_name = task_creator.name;
+            if (!status)
+                curr_task.creator_name = task_creator.name;
+            else
+                curr_task.creator_name = "пользователся, создавшего данную задачу, более не существует";
 
             result_tasks.push_back(curr_task);
         }
@@ -555,10 +554,10 @@ auto data_base_manager::get_profile_reviewed_tasks(std::vector<task> &result_tas
 
             auto status = this->get_profile_by_ID(curr_task.creator_ID, task_creator);
 
-            if (status)
-                return status;
-
-            curr_task.creator_name = task_creator.name;
+            if (!status)
+                curr_task.creator_name = task_creator.name;
+            else
+                curr_task.creator_name = "пользователся, создавшего данную задачу, более не существует";
 
             result_tasks.push_back(curr_task);
         }
@@ -620,7 +619,7 @@ auto data_base_manager::get_profile_sended_invites(std::vector<invite> &result_i
         request << "SELECT * FROM invites WHERE sender_ID = "
                 << this->manager->ID;
 
-        std::cout << request.str();
+        std::cout << request.str() << std::endl;
 
         conn.execute(request.str(), result);
 
@@ -879,10 +878,10 @@ auto data_base_manager::get_room(
 
             auto status = this->get_profile_by_ID(result_room.creator_ID, creator_profile);
             
-            if (status)
-                return status;
-
-            result_room.creator_name = creator_profile.name;
+            if (!status)
+                result_room.creator_name = creator_profile.name;
+            else
+                result_room.creator_name = "пользователя, создавшего данную комнату, более не существует";
 
             return DATA_BASE_COMPLETED_SUCCESSFULY;
         }
@@ -1220,10 +1219,10 @@ auto data_base_manager::get_task(
 
             status = this->get_profile_by_ID(result_task.creator_ID, task_creator);
 
-            if (status)
-                return status;
-            
-            result_task.creator_name = task_creator.name;
+            if (!status)
+                result_task.creator_name = task_creator.name;
+            else
+                result_task.creator_name = "пользователя, создавшего данную задачу, более не существует";
 
             return DATA_BASE_COMPLETED_SUCCESSFULY;
         }
@@ -1801,6 +1800,8 @@ auto data_base_manager::get_profile_rooms(std::vector<room> &result_rooms) -> DA
 
         request << "SELECT rooms.* FROM profile_room INNER JOIN rooms ON profile_room.room_creator_ID = rooms.creator_ID AND profile_room.room_name = rooms.name AND profile_room.profile_ID = "
                 << this->manager->ID;
+
+        std::cout << request.str();
                 
         conn.execute(request.str(), result);
 
@@ -1813,10 +1814,10 @@ auto data_base_manager::get_profile_rooms(std::vector<room> &result_rooms) -> DA
 
             auto status = this->get_profile_by_ID(curr_room.creator_ID, room_creator);
 
-            if (status)
-                return status;
-
-            curr_room.creator_name = room_creator.name;
+            if (!status)            
+                curr_room.creator_name = room_creator.name;
+            else
+                curr_room.creator_name = "пользователя, создавшего данную комнату, более не существует";
 
             result_rooms.push_back(curr_room);
         }
@@ -1858,10 +1859,10 @@ auto data_base_manager::get_profile_tasks(std::vector<task> &result_tasks) -> DA
 
             auto status = this->get_profile_by_ID(curr_task.creator_ID, task_creator);
 
-            if (status)
-                return status;
-
-            curr_task.creator_name = task_creator.name;
+            if (!status)
+                curr_task.creator_name = task_creator.name;
+            else
+                curr_task.creator_name = "пользователся, создавшего данную задачу, более не существует";
 
             result_tasks.push_back(curr_task);
         }
@@ -1947,11 +1948,11 @@ auto data_base_manager::get_room_tasks(const u_int64_t room_creator_ID, const st
 
             status = this->get_profile_by_ID(curr_task.creator_ID, task_creator);
 
-            if (status)
-                return status;
+            if (!status)
+                curr_task.creator_name = task_creator.name;
+            else
+                curr_task.creator_name = "пользователся, создавшего данную задачу, более не существует";
 
-            curr_task.creator_name = task_creator.name;
-            
             result_tasks.push_back(curr_task);
         }
 
