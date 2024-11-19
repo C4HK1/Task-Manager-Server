@@ -4,3 +4,4 @@
 #include "models/room.h"
 #include "models/task.h"
 #include "models/timer.h"
+#include "models/status.h"

@@ -1,20 +1,21 @@
+#include <iostream>
+#include <nlohmann/json_fwd.hpp>
+#include <string>
+#include <sys/types.h>
+
 #include "services/JWT_manager.h"
 #include "services/data_base_manager.h"
 
 #include "server/request_handler.h"
-#include "server/server_status.h"
 
+#include "models/status.h"
 #include "models/profile.h" 
 #include "models/room.h" 
 #include "models/task.h" 
 #include "models/config.h" 
 #include "models/invite.h" 
-#include <cstddef>
-#include <nlohmann/json_fwd.hpp>
-#include <string>
-#include <sys/types.h>
 
-request_handler::request_handler(http::request<http::dynamic_body> *request, http::response<http::dynamic_body> *response) : 
+server::request_handler::request_handler(http::request<http::dynamic_body> *request, http::response<http::dynamic_body> *response) : 
         request(request),
         response(response) {
     std::cout << "\nrequest on: " 
@@ -23,8 +24,8 @@ request_handler::request_handler(http::request<http::dynamic_body> *request, htt
               << beast::buffers_to_string((*this->request).body().data())
               << std::endl;
 
-    this->jwt = new JWT_manager;
-    server_status::JWT_status = jwt->validate_jwt_token(*this->request, this->request_data);
+    this->jwt = new services::JWT_manager;
+    models::status::JWT_status = jwt->validate_jwt_token(*this->request, this->request_data);
     
     std::cout << "\nwith header data: '"
               << this->request_data
@@ -42,7 +43,7 @@ request_handler::request_handler(http::request<http::dynamic_body> *request, htt
         std::cout << exception.what() << std::endl;
     }
 
-    this->data_base = new data_base_manager(header_ID, header_login, header_password);
+    this->data_base = new services::data_base_manager(header_ID, header_login, header_password);
 
     try {   
         this->request_data = nlohmann::json::parse(beast::buffers_to_string((*this->request).body().data()));
@@ -51,12 +52,12 @@ request_handler::request_handler(http::request<http::dynamic_body> *request, htt
     }
 }
 
-request_handler::~request_handler() {
+server::request_handler::~request_handler() {
     delete this->data_base;
     delete this->jwt;
 }
 
-auto request_handler::get_request_handler() -> void {
+auto server::request_handler::get_request_handler() -> void {
     (*this->response).result(http::status::ok);
     nlohmann::json response;
     
@@ -65,38 +66,38 @@ auto request_handler::get_request_handler() -> void {
             auto login = this->request_data.at("login");
             auto password = this->request_data.at("password");
         
-            struct profile profile;
+            models::profile profile;
 
-            server_status::data_base_status = this->data_base->loggin_profile(login, password, profile);
+            models::status::data_base_status = this->data_base->loggin_profile(login, password, profile);
 
-            std::string result_jwt;
+            std::string jwt;
 
-            server_status::JWT_status = jwt->create_jwt(profile.ID, profile.login, profile.password, result_jwt);
+            models::status::JWT_status = this->jwt->create_jwt(profile.ID, profile.login, profile.password, jwt);
 
-            if (server_status::data_base_status)
-                result_jwt = "";
+            if (models::status::data_base_status)
+                jwt = "";
         
-            response.push_back(nlohmann::json::object_t::value_type("status", server_status::get_status()));
-            response.push_back(nlohmann::json::object_t::value_type("JWT", result_jwt));
+            response.push_back(nlohmann::json::object_t::value_type("status", models::status::get_status()));
+            response.push_back(nlohmann::json::object_t::value_type("JWT", jwt));
         } catch(boost::mysql::error_with_diagnostics &exception) {
             std::cout << exception.get_diagnostics().server_message() << std::endl;
             std::cout << exception.get_diagnostics().client_message() << std::endl;
             
-            server_status::request_status = REQUEST_INVALID_REQUEST_BODY_DATA;
-            response.push_back(nlohmann::json::object_t::value_type("status", server_status::get_status()));
+            models::status::request_status = REQUEST_INVALID_REQUEST_BODY_DATA;
+            response.push_back(nlohmann::json::object_t::value_type("status", models::status::get_status()));
         }
 
         std::cout << "profile loggining response: " << response << std::endl;
     } else if (!(*this->request).target().find("/ProfileAuthentication/")) {
-        profile result_profile;
+        models::profile profile;
 
-        server_status::data_base_status = this->data_base->profile_authenticate(result_profile);
+        models::status::data_base_status = this->data_base->profile_authenticate(profile);
         
-        response.push_back(nlohmann::json::object_t::value_type("status", server_status::get_status()));
+        response.push_back(nlohmann::json::object_t::value_type("status", models::status::get_status()));
     
         std::cout << "profile authentication response " << response << std::endl;
     } else if (!(*this->request).target().find("/GetProfile/")) {
-        response.push_back(nlohmann::json::object_t::value_type("status", server_status::get_status()));
+        response.push_back(nlohmann::json::object_t::value_type("status", models::status::get_status()));
         response.push_back(nlohmann::json::object_t::value_type("profile", this->data_base->get_manager().to_json()));
  
         std::cout << "get profile response " << response << std::endl;
@@ -104,179 +105,179 @@ auto request_handler::get_request_handler() -> void {
         auto prefix = this->request_data.at("substr");
         auto offset = this->request_data.at("offset");
 
-        std::vector<profile> result_profiles;
+        std::vector<models::profile> profiles;
 
-        server_status::data_base_status = this->data_base->get_profiles_with_substr_in_name(prefix, offset, result_profiles);
+        models::status::data_base_status = this->data_base->get_profiles_with_substr_in_name(prefix, offset, profiles);
 
-        response.push_back(nlohmann::json::object_t::value_type("status", server_status::get_status()));
+        response.push_back(nlohmann::json::object_t::value_type("status", models::status::get_status()));
 
-        nlohmann::json profiles;
+        nlohmann::json curr_profiles;
 
-        for (auto profile : result_profiles) {
-            profiles.push_back(profile.to_public_json());
+        for (auto profile : profiles) {
+            curr_profiles.push_back(profile.to_public_json());
         }
 
-        response.push_back(nlohmann::json::object_t::value_type("profiles", profiles));
+        response.push_back(nlohmann::json::object_t::value_type("profiles", curr_profiles));
 
         std::cout << "find profiles with substr response " << response << std::endl;
     } else if (!(*this->request).target().find("/GetPublicProfile/")) {
         auto profile_ID = this->request_data.at("profile ID");
 
-        profile result_profile;
+        models::profile profile;
 
-        server_status::data_base_status = this->data_base->get_profile_by_ID(profile_ID, result_profile);
+        models::status::data_base_status = this->data_base->get_profile_by_ID(profile_ID, profile);
         
-        response.push_back(nlohmann::json::object_t::value_type("status", server_status::get_status()));
-        response.push_back(nlohmann::json::object_t::value_type("profile", result_profile.to_public_json()));
+        response.push_back(nlohmann::json::object_t::value_type("status", models::status::get_status()));
+        response.push_back(nlohmann::json::object_t::value_type("profile", profile.to_public_json()));
  
         std::cout << "get public profile response " << response << std::endl;
     } else if (!(*this->request).target().find("/GetProfileConfig/")) {
-        config result_config;
+        models::config config;
 
-        server_status::data_base_status = this->data_base->get_profile_config(result_config);
+        models::status::data_base_status = this->data_base->get_profile_config(config);
 
-        response.push_back(nlohmann::json::object_t::value_type("status", server_status::get_status()));
-        response.push_back(nlohmann::json::object_t::value_type("config", result_config.to_json()));
+        response.push_back(nlohmann::json::object_t::value_type("status", models::status::get_status()));
+        response.push_back(nlohmann::json::object_t::value_type("config", config.to_json()));
 
         std::cout << "get profile config" << response << std::endl;
     } else if (!(*this->request).target().find("/GetProfileRooms/")) {
-        std::vector<room> result_rooms;
+        std::vector<models::room> rooms;
 
-        server_status::data_base_status = this->data_base->get_profile_rooms(result_rooms);
+        models::status::data_base_status = this->data_base->get_profile_rooms(rooms);
         
-        response.push_back(nlohmann::json::object_t::value_type("status", server_status::get_status()));
+        response.push_back(nlohmann::json::object_t::value_type("status", models::status::get_status()));
         
-        nlohmann::json rooms;
-        for (auto room : result_rooms) {
-            rooms.push_back(room.to_json());
+        nlohmann::json curr_rooms;
+        for (auto room : rooms) {
+            curr_rooms.push_back(room.to_json());
         }
 
-        response.push_back(nlohmann::json::object_t::value_type("rooms", rooms));
+        response.push_back(nlohmann::json::object_t::value_type("rooms", curr_rooms));
             
         std::cout << "get profile rooms response " << response << std::endl;
     } else if (!(*this->request).target().find("/GetProfileTasks/")) {
-        std::vector<task> result_tasks;
+        std::vector<models::task> tasks;
 
-        server_status::data_base_status = this->data_base->get_profile_tasks(result_tasks);
+        models::status::data_base_status = this->data_base->get_profile_tasks(tasks);
         
-        response.push_back(nlohmann::json::object_t::value_type("status", server_status::get_status()));
+        response.push_back(nlohmann::json::object_t::value_type("status", models::status::get_status()));
 
-        nlohmann::json tasks;
-        for (auto task : result_tasks) {
-            tasks.push_back(task.to_json());
+        nlohmann::json curr_tasks;
+        for (auto task : tasks) {
+            curr_tasks.push_back(task.to_json());
         }
 
-        response.push_back(nlohmann::json::object_t::value_type("tasks", tasks));
+        response.push_back(nlohmann::json::object_t::value_type("tasks", curr_tasks));
 
         std::cout << "get profile tasks response " << response << std::endl;
     } else if (!(*this->request).target().find("/GetProfileAssignedTasks/")) {
-        std::vector<task> result_tasks;
+        std::vector<models::task> tasks;
 
-        server_status::data_base_status = this->data_base->get_profile_assigned_tasks(result_tasks);
+        models::status::data_base_status = this->data_base->get_profile_assigned_tasks(tasks);
         
-        response.push_back(nlohmann::json::object_t::value_type("status", server_status::get_status()));
+        response.push_back(nlohmann::json::object_t::value_type("status", models::status::get_status()));
 
-        nlohmann::json tasks;
-        for (auto task : result_tasks) {
-            tasks.push_back(task.to_json());
+        nlohmann::json curr_tasks;
+        for (auto task : tasks) {
+            curr_tasks.push_back(task.to_json());
         }
 
-        response.push_back(nlohmann::json::object_t::value_type("tasks", tasks));
+        response.push_back(nlohmann::json::object_t::value_type("tasks", curr_tasks));
 
         std::cout << "get profile assigned tasks reponse " << response << std::endl;         
     } else if (!(*this->request).target().find("/GetProfileReviewedTasks/")) {
-        std::vector<task> result_tasks;
+        std::vector<models::task> tasks;
 
-        server_status::data_base_status = this->data_base->get_profile_reviewed_tasks(result_tasks);
+        models::status::data_base_status = this->data_base->get_profile_reviewed_tasks(tasks);
         
-        response.push_back(nlohmann::json::object_t::value_type("status", server_status::get_status()));
+        response.push_back(nlohmann::json::object_t::value_type("status", models::status::get_status()));
 
-        nlohmann::json tasks;
-        for (auto task : result_tasks) {
-            tasks.push_back(task.to_json());
+        nlohmann::json curr_tasks;
+        for (auto task : tasks) {
+            curr_tasks.push_back(task.to_json());
         }
 
-        response.push_back(nlohmann::json::object_t::value_type("tasks", tasks));
+        response.push_back(nlohmann::json::object_t::value_type("tasks", curr_tasks));
 
         std::cout << "get profile reviewed tasks response " << response << std::endl;
     } else if (!(*this->request).target().find("/GetProfileReceivedInvites/")) {
-        std::vector<invite> result_invites;
+        std::vector<models::invite> invites;
 
-        server_status::data_base_status = this->data_base->get_profile_received_invites(result_invites);
+        models::status::data_base_status = this->data_base->get_profile_received_invites(invites);
 
-        response.push_back(nlohmann::json::object_t::value_type("status", server_status::get_status()));
+        response.push_back(nlohmann::json::object_t::value_type("status", models::status::get_status()));
 
-        nlohmann::json invites;
+        nlohmann::json curr_invites;
 
-        for (auto invite : result_invites) {
-            invites.push_back(invite.to_json());
+        for (auto invite : invites) {
+            curr_invites.push_back(invite.to_json());
         }
 
-        response.push_back(nlohmann::json::object_t::value_type("invites", invites));
+        response.push_back(nlohmann::json::object_t::value_type("invites", curr_invites));
 
         std::cout << "get profile received invites response " << response << std::endl;
     } else if (!(*this->request).target().find("/GetProfileSendedInvites/")) {
-        std::vector<invite> result_invites;
+        std::vector<models::invite> invites;
 
-        server_status::data_base_status = this->data_base->get_profile_sended_invites(result_invites);
+        models::status::data_base_status = this->data_base->get_profile_sended_invites(invites);
 
-        response.push_back(nlohmann::json::object_t::value_type("status", server_status::get_status()));
+        response.push_back(nlohmann::json::object_t::value_type("status", models::status::get_status()));
 
-        nlohmann::json invites;
+        nlohmann::json curr_invites;
 
-        for (auto invite : result_invites) {
-            invites.push_back(invite.to_json());
+        for (auto invite : invites) {
+            curr_invites.push_back(invite.to_json());
         }
 
-        response.push_back(nlohmann::json::object_t::value_type("invites", invites));
+        response.push_back(nlohmann::json::object_t::value_type("invites", curr_invites));
 
         std::cout << "get profile sended invites response " << response << std::endl;
     } else if (!(*this->request).target().find("/GetRoom/")) {
         auto room_creator_ID = this->request_data.at("room creator ID");
         auto room_name = this->request_data.at("room name");
 
-        struct room result_room;
+        models::room room;
 
-        server_status::data_base_status = this->data_base->get_room(room_creator_ID, room_name, result_room);
+        models::status::data_base_status = this->data_base->get_room(room_creator_ID, room_name, room);
 
-        response.push_back(nlohmann::json::object_t::value_type("status", server_status::get_status()));
-        response.push_back(nlohmann::json::object_t::value_type("room", result_room.to_json()));
+        response.push_back(nlohmann::json::object_t::value_type("status", models::status::get_status()));
+        response.push_back(nlohmann::json::object_t::value_type("room", room.to_json()));
 
         std::cout << "get room info response " << response << std::endl;
     } else if (!(*this->request).target().find("/GetRoomTasks/")) {
         auto room_creator_ID = this->request_data.at("room creator ID");
         auto room_name = this->request_data.at("room name");
 
-        std::vector<task> result_tasks;
+        std::vector<models::task> tasks;
 
-        server_status::data_base_status = this->data_base->get_room_tasks(room_creator_ID, room_name, result_tasks);
+        models::status::data_base_status = this->data_base->get_room_tasks(room_creator_ID, room_name, tasks);
         
-        response.push_back(nlohmann::json::object_t::value_type("status", server_status::get_status()));
+        response.push_back(nlohmann::json::object_t::value_type("status", models::status::get_status()));
         
-        nlohmann::json tasks;
-        for (auto task : result_tasks) {
-            tasks.push_back(task.to_json());
+        nlohmann::json curr_tasks;
+        for (auto task : tasks) {
+            curr_tasks.push_back(task.to_json());
         }
 
-        response.push_back(nlohmann::json::object_t::value_type("tasks", tasks));
+        response.push_back(nlohmann::json::object_t::value_type("tasks", curr_tasks));
 
         std::cout << "get room tasks response " << response << std::endl;
     } else if (!(*this->request).target().find("/GetRoomProfiles/")) {
         auto room_creator_ID = this->request_data.at("room creator ID");
         auto room_name = this->request_data.at("room name");
 
-        std::vector<profile> result_profiles;
+        std::vector<models::profile> profiles;
 
-        server_status::data_base_status = this->data_base->get_room_profiles(room_creator_ID, room_name, result_profiles);
+        models::status::data_base_status = this->data_base->get_room_profiles(room_creator_ID, room_name, profiles);
         
-        response.push_back(nlohmann::json::object_t::value_type("status", server_status::get_status()));
+        response.push_back(nlohmann::json::object_t::value_type("status", models::status::get_status()));
 
-        nlohmann::json profiles;
-        for (auto profile : result_profiles) {
-            profiles.push_back(profile.to_json());
+        nlohmann::json curr_profiles;
+        for (auto profile : profiles) {
+            curr_profiles.push_back(profile.to_json());
         }
 
-        response.push_back(nlohmann::json::object_t::value_type("profiles", profiles));
+        response.push_back(nlohmann::json::object_t::value_type("profiles", curr_profiles));
 
         std::cout << "get room profiles response " << response << std::endl;
     } else {
@@ -291,7 +292,7 @@ auto request_handler::get_request_handler() -> void {
     beast::ostream((*this->response).body()) << response;
 }
 
-auto request_handler::post_request_handler() -> void {
+auto server::request_handler::post_request_handler() -> void {
     (*this->response).result(http::status::ok);
     nlohmann::json response;
 
@@ -302,49 +303,49 @@ auto request_handler::post_request_handler() -> void {
         auto email = this->request_data.at("email");
         auto phone = this->request_data.at("phone");
 
-        profile profile;
+        models::profile profile;
         
-        server_status::data_base_status = this->data_base->create_profile(name, login, password, email, phone, profile);
+        models::status::data_base_status = this->data_base->create_profile(name, login, password, email, phone, profile);
         
-        std::string result_jwt;
+        std::string jwt;
 
-        server_status::JWT_status = jwt->create_jwt(profile.ID, profile.login, profile.password, result_jwt);
+        models::status::JWT_status = this->jwt->create_jwt(profile.ID, profile.login, profile.password, jwt);
 
-        if (server_status::data_base_status)
-            result_jwt = "";
+        if (models::status::data_base_status)
+            jwt = "";
 
-        response.push_back(nlohmann::json::object_t::value_type("status", server_status::get_status()));
-        response.push_back(nlohmann::json::object_t::value_type("JWT", result_jwt));
+        response.push_back(nlohmann::json::object_t::value_type("status", models::status::get_status()));
+        response.push_back(nlohmann::json::object_t::value_type("JWT", jwt));
     
         std::cout << "profile creation response " << response << std::endl;
     } else if (!(*request).target().find("/CreateRoom/")) {
         auto room_name = this->request_data.at("room name");
         auto description = this->request_data.at("description");
 
-        room result_room;
+        models::room room;
 
-        server_status::data_base_status = this->data_base->create_room(room_name, description, result_room);
+        models::status::data_base_status = this->data_base->create_room(room_name, description, room);
 
-        response.push_back(nlohmann::json::object_t::value_type("status", server_status::get_status()));
-        response.push_back(nlohmann::json::object_t::value_type("room", result_room.to_json()));
+        response.push_back(nlohmann::json::object_t::value_type("status", models::status::get_status()));
+        response.push_back(nlohmann::json::object_t::value_type("room", room.to_json()));
         
         std::cout << "room creating response " << response << std::endl;
     }  else if (!(*request).target().find("/LeaveFromRoom/")) {
         auto room_creator_ID = this->request_data.at("room creator ID");
         auto room_name = this->request_data.at("room name");
 
-        server_status::data_base_status = this->data_base->leave_from_room(room_creator_ID, room_name);
+        models::status::data_base_status = this->data_base->leave_from_room(room_creator_ID, room_name);
 
-        response.push_back(nlohmann::json::object_t::value_type("status", server_status::get_status()));
+        response.push_back(nlohmann::json::object_t::value_type("status", models::status::get_status()));
         
         std::cout << "room leaving response " << response << std::endl;
     } else if (!(*request).target().find("/DeleteRoom/")) {
         auto room_creator_ID = this->request_data.at("room creator ID");
         auto room_name = this->request_data.at("room name");
         
-        server_status::data_base_status = this->data_base->delete_room(room_creator_ID, room_name);
+        models::status::data_base_status = this->data_base->delete_room(room_creator_ID, room_name);
 
-        response.push_back(nlohmann::json::object_t::value_type("status", server_status::get_status()));
+        response.push_back(nlohmann::json::object_t::value_type("status", models::status::get_status()));
 
         std::cout << "room deleting response " << response << std::endl;
     } else if (!(*request).target().find("/CreateTask/")) {      
@@ -356,11 +357,11 @@ auto request_handler::post_request_handler() -> void {
         int status = this->request_data.at("status");
         auto time_to_live = this->request_data.at("time to live");
 
-        struct task task;
+        models::task task;
 
-        server_status::data_base_status = this->data_base->create_task(room_creator_ID, room_name, task_name, description, label, status, time_to_live, task);
+        models::status::data_base_status = this->data_base->create_task(room_creator_ID, room_name, task_name, description, label, status, time_to_live, task);
         
-        response.push_back(nlohmann::json::object_t::value_type("status", server_status::get_status()));
+        response.push_back(nlohmann::json::object_t::value_type("status", models::status::get_status()));
         response.push_back(nlohmann::json::object_t::value_type("task", task.to_json()));
         
         std::cout << "task creating response " << response << std::endl;
@@ -370,9 +371,9 @@ auto request_handler::post_request_handler() -> void {
         auto task_name = this->request_data.at("task name");
         auto assignee_ID = this->request_data.at("assignee ID");
 
-        server_status::data_base_status = this->data_base->add_task_to_assignee(room_creator_ID, room_name, task_name, assignee_ID);
+        models::status::data_base_status = this->data_base->add_task_to_assignee(room_creator_ID, room_name, task_name, assignee_ID);
 
-        response.push_back(nlohmann::json::object_t::value_type("status", server_status::get_status()));
+        response.push_back(nlohmann::json::object_t::value_type("status", models::status::get_status()));
 
         std::cout << "task added to assignee response " << response << std::endl;
     } else if (!(*request).target().find("/AddTaskToReviewer/")) {
@@ -381,9 +382,9 @@ auto request_handler::post_request_handler() -> void {
         auto task_name = this->request_data.at("task name");
         auto reviewer_ID = this->request_data.at("reviewer ID");
 
-        server_status::data_base_status = this->data_base->add_task_to_reviewer(room_creator_ID, room_name, task_name, reviewer_ID);
+        models::status::data_base_status = this->data_base->add_task_to_reviewer(room_creator_ID, room_name, task_name, reviewer_ID);
 
-        response.push_back(nlohmann::json::object_t::value_type("status", server_status::get_status()));
+        response.push_back(nlohmann::json::object_t::value_type("status", models::status::get_status()));
         
         std::cout << "task added to reviewer response " << response << std::endl;
     } else if (!(*request).target().find("/RemoveTaskFromAssignee/")) {
@@ -392,9 +393,9 @@ auto request_handler::post_request_handler() -> void {
         auto task_name = this->request_data.at("task name");
         auto assignee_ID = this->request_data.at("assigne ID");
 
-        server_status::data_base_status = this->data_base->remove_task_from_assignee(room_creator_ID, room_name, task_name, assignee_ID);
+        models::status::data_base_status = this->data_base->remove_task_from_assignee(room_creator_ID, room_name, task_name, assignee_ID);
 
-        response.push_back(nlohmann::json::object_t::value_type("status", server_status::get_status()));
+        response.push_back(nlohmann::json::object_t::value_type("status", models::status::get_status()));
         
         std::cout << "task removed from assignee response " << response << std::endl;
     } else if (!(*request).target().find("/RemoveTaskFromReviewer/")) {
@@ -403,9 +404,9 @@ auto request_handler::post_request_handler() -> void {
         auto task_name = this->request_data.at("task name");
         auto reviewer_ID = this->request_data.at("reviewer ID");
 
-        server_status::data_base_status = this->data_base->remove_task_from_reviewer(room_creator_ID, room_name, task_name, reviewer_ID);
+        models::status::data_base_status = this->data_base->remove_task_from_reviewer(room_creator_ID, room_name, task_name, reviewer_ID);
 
-        response.push_back(nlohmann::json::object_t::value_type("status", server_status::get_status()));
+        response.push_back(nlohmann::json::object_t::value_type("status", models::status::get_status()));
         
         std::cout << "task remove from reviewer response " << response << std::endl;
     } else if (!(*request).target().find("/DeleteTask/")) {
@@ -413,9 +414,9 @@ auto request_handler::post_request_handler() -> void {
         auto room_name = this->request_data.at("room name");
         auto task_name = this->request_data.at("task name");
         
-        server_status::data_base_status = this->data_base->delete_task(room_creator_ID, room_name, task_name);
+        models::status::data_base_status = this->data_base->delete_task(room_creator_ID, room_name, task_name);
         
-        response.push_back(nlohmann::json::object_t::value_type("status", server_status::get_status()));
+        response.push_back(nlohmann::json::object_t::value_type("status", models::status::get_status()));
         
         std::cout << "task deleting response " << response << std::endl;
     }  else if (!(*request).target().find("/CreateInvite/")) {
@@ -423,23 +424,23 @@ auto request_handler::post_request_handler() -> void {
         auto room_creator_ID = this->request_data.at("room creator ID");
         auto room_name = this->request_data.at("room name");
 
-        invite result_invite;
+        models::invite invite;
 
-        server_status::data_base_status = this->data_base->create_invite(receiver_ID, room_creator_ID, room_name, result_invite);
+        models::status::data_base_status = this->data_base->create_invite(receiver_ID, room_creator_ID, room_name, invite);
 
-        response.push_back(nlohmann::json::object_t::value_type("status", server_status::get_status()));
-        response.push_back(nlohmann::json::object_t::value_type("invite", result_invite.to_json()));
+        response.push_back(nlohmann::json::object_t::value_type("status", models::status::get_status()));
+        response.push_back(nlohmann::json::object_t::value_type("invite", invite.to_json()));
         
         std::cout << "creating invite response " << response << std::endl;
     } else if (!(*request).target().find("/AcceptInvite/")) {
         auto room_creator_ID = this->request_data.at("room creator ID");
         auto room_name = this->request_data.at("room name");
 
-        invite accepted_invite;
+        models::invite accepted_invite;
 
-        server_status::data_base_status = this->data_base->accept_invite(room_creator_ID, room_name, accepted_invite);
+        models::status::data_base_status = this->data_base->accept_invite(room_creator_ID, room_name, accepted_invite);
 
-        response.push_back(nlohmann::json::object_t::value_type("status", server_status::get_status()));
+        response.push_back(nlohmann::json::object_t::value_type("status", models::status::get_status()));
         response.push_back(nlohmann::json::object_t::value_type("invite", accepted_invite.to_json()));
         
         std::cout << "accepting invite response " << response << std::endl;
@@ -448,11 +449,11 @@ auto request_handler::post_request_handler() -> void {
         auto room_creator_ID = this->request_data.at("room creator ID");
         auto room_name = this->request_data.at("room name");
 
-        invite deleted_invite;
+        models::invite deleted_invite;
 
-        server_status::data_base_status = this->data_base->delete_sended_invite(receiver_ID, room_creator_ID, room_name, deleted_invite);
+        models::status::data_base_status = this->data_base->delete_sended_invite(receiver_ID, room_creator_ID, room_name, deleted_invite);
         
-        response.push_back(nlohmann::json::object_t::value_type("status", server_status::get_status()));
+        response.push_back(nlohmann::json::object_t::value_type("status", models::status::get_status()));
         response.push_back(nlohmann::json::object_t::value_type("invite", deleted_invite.to_json()));
         
         std::cout << "deleting sended invite response " << response << std::endl;
@@ -461,11 +462,11 @@ auto request_handler::post_request_handler() -> void {
         auto room_creator_ID = this->request_data.at("room creator ID");
         auto room_name = this->request_data.at("room name");
 
-        invite deleted_invite;
+        models::invite deleted_invite;
 
-        server_status::data_base_status = this->data_base->delete_received_invite(sender_ID, room_creator_ID, room_name, deleted_invite);
+        models::status::data_base_status = this->data_base->delete_received_invite(sender_ID, room_creator_ID, room_name, deleted_invite);
 
-        response.push_back(nlohmann::json::object_t::value_type("status", server_status::get_status()));
+        response.push_back(nlohmann::json::object_t::value_type("status", models::status::get_status()));
         response.push_back(nlohmann::json::object_t::value_type("invite", deleted_invite.to_json()));
 
         std::cout << "deleting received invite response " << response << std::endl;
@@ -481,14 +482,14 @@ auto request_handler::post_request_handler() -> void {
     beast::ostream((*this->response).body()) << response;
 }
 
-auto request_handler::delete_request_handler() -> void {
+auto server::request_handler::delete_request_handler() -> void {
     (*this->response).result(http::status::ok);
     nlohmann::json response;
 
     if (!(*request).target().find("/DeleteProfile/")) {
-        server_status::data_base_status = this->data_base->delete_profile();
+        models::status::data_base_status = this->data_base->delete_profile();
 
-        response.push_back(nlohmann::json::object_t::value_type("status", server_status::get_status()));
+        response.push_back(nlohmann::json::object_t::value_type("status", models::status::get_status()));
     
         std::cout << "profile deleting response " << response << std::endl;
     } else {
@@ -503,6 +504,6 @@ auto request_handler::delete_request_handler() -> void {
     beast::ostream((*this->response).body()) << response;
 }
 
-auto request_handler::patch_request_handler() -> void {
+auto server::request_handler::patch_request_handler() -> void {
 
 }

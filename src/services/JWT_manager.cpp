@@ -5,18 +5,18 @@
 
 #include "services/JWT_manager.h"
 #include "services/file_parser.h"
-#include "server/server_status.h"
+#include "models/status.h"
 
 extern constexpr u_int64_t TIME_TO_LIVE = 60 * 60 * 24 * 7;
 
-JWT_manager::JWT_manager(const std::string &public_key_path, const std::string &private_key_path) {
+services::JWT_manager::JWT_manager(const std::string &public_key_path, const std::string &private_key_path) {
     auto private_key_reading_status = file_parser::read_text_file_to_string(private_key_path, private_key_);
     auto public_key_reading_status = file_parser::read_text_file_to_string(public_key_path, public_key_);
 
-    server_status::file_parse_status = std::max(private_key_reading_status, public_key_reading_status);
+    models::status::file_parse_status = std::max(private_key_reading_status, public_key_reading_status);
 }
 
-auto JWT_manager::validate_jwt_token(http::request<http::dynamic_body> request, json_t &result_data) -> JWT_EXECUTION_STATUS {
+auto services::JWT_manager::validate_jwt_token(http::request<http::dynamic_body> request, json_t &result_data) -> JWT_EXECUTION_STATUS {
     for (auto &header : request.base()) {
         auto header_value = std::string(header.value());
         if (header.name() == http::field::authorization) {
@@ -39,7 +39,7 @@ auto JWT_manager::validate_jwt_token(http::request<http::dynamic_body> request, 
     return JWT_NO_TOKEN_HEADER;
 }
 
-auto JWT_manager::create_jwt(const u_int64_t ID, const std::string &login, const std::string &password, std::string &result_jwt) -> JWT_EXECUTION_STATUS {
+auto services::JWT_manager::create_jwt(const u_int64_t ID, const std::string &login, const std::string &password, std::string &result_jwt) -> JWT_EXECUTION_STATUS {
     time_t current_time = time(NULL);
 
     jwt::jwt_object object{jwt::params::algorithm("RS256"), jwt::params::secret(private_key_), jwt::params::payload({{"ID", std::to_string(ID)}, {"login", login}, {"password", password}, {"destroy_time", std::to_string(current_time + TIME_TO_LIVE)}})};

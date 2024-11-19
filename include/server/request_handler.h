@@ -16,37 +16,42 @@
 #include <boost/mysql/field_view.hpp>
 #include <boost/mysql/rows_view.hpp>
 #include <cstddef>
-#include <cstdint>
 #include <cstdlib>
 #include <ctime>
-#include <iostream>
 #include <boost/format.hpp>
 #include <boost/mysql/tcp_ssl.hpp>
 #include <stdlib.h>
 #include <sys/types.h>
-#include <utility>
-#include <vector>
 
-class JWT_manager;
-class data_base_manager;
+#include "services.h"
 
 namespace beast = boost::beast;         // from <boost/beast.hpp>
 namespace http = beast::http;           // from <boost/beast/http.hpp>
 
-class request_handler {   
-    http::request<http::dynamic_body> *request;
-    http::response<http::dynamic_body> *response;
+namespace server {
+    enum REQUEST_STATUS : u_int64_t {
+        REQUEST_COMPLETED_SUCCESSFULY,
+        
+        REQUEST_INVALID_REQUEST_BODY_DATA,
+    };
 
-    json_t request_data;
+    constexpr size_t REQUEST_SHIFT{3};
 
-    JWT_manager *jwt;
-    data_base_manager *data_base;
-public:
-    request_handler(http::request<http::dynamic_body> *request, http::response<http::dynamic_body> *response);
-    ~request_handler();
+    class request_handler {   
+        http::request<http::dynamic_body> *request;
+        http::response<http::dynamic_body> *response;
 
-    auto get_request_handler() -> void;
-    auto post_request_handler() -> void;
-    auto delete_request_handler() -> void;
-    auto patch_request_handler() -> void;
- };
+        json_t request_data;
+
+        services::JWT_manager *jwt;
+        services::data_base_manager *data_base;
+    public:
+        request_handler(http::request<http::dynamic_body> *request, http::response<http::dynamic_body> *response);
+        ~request_handler();
+
+        auto get_request_handler() -> void;
+        auto post_request_handler() -> void;
+        auto delete_request_handler() -> void;
+        auto patch_request_handler() -> void;
+    };
+}

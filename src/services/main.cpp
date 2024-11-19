@@ -6,7 +6,7 @@
 
 int main()
 {
-    data_base_manager manager(1, "1", "1", "0.0.0.0", "3306", "myuser", "secret", "mydatabase");
+    services::data_base_manager manager(1, "1", "1", "0.0.0.0", "3306", "myuser", "secret", "mydatabase");
 
     std::cout << manager.get_manager().to_json() << std::endl;
 
@@ -29,10 +29,10 @@ int main()
 
     std::cout << "=============================\n";
 
-    struct profile profile;
-    struct room room;
-    struct task task;
-    config config;
+    struct models::profile profile;
+    struct models::room room;
+    struct models::task task;
+    struct models::config config;
     std::vector<struct room> rooms;
     std::vector<struct task> tasks;
     std::vector<struct profile> profiles;

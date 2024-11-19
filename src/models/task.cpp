@@ -2,12 +2,11 @@
 #include <boost/mysql/row.hpp>
 #include <ctime>
 #include <nlohmann/json_fwd.hpp>
-#include <iostream>
 
 #include "models/timer.h"
 #include "models/task.h"
 
-task::task(std::vector<boost::mysql::field> task) {
+models::task::task(std::vector<boost::mysql::field> task) {
     this->room_creator_ID = task.at(0).get_uint64();
     this->room_name = task.at(1).get_string();
     this->creator_ID = task.at(2).get_uint64();
@@ -19,7 +18,7 @@ task::task(std::vector<boost::mysql::field> task) {
     this->deadline = task.at(8).get_datetime();
 }
 
-auto task::to_json() const -> nlohmann::json {
+auto models::task::to_json() const -> nlohmann::json {
     return {
             {"room creator ID", this->room_creator_ID},
             {"room name", this->room_name},

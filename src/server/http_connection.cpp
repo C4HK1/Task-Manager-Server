@@ -9,17 +9,17 @@
 #include "server/http_connection.h"
 #include "server/request_handler.h"
 
-http_connection::http_connection(tcp::socket socket) : socket_(std::move(socket)) {}
+server::http_connection::http_connection(tcp::socket socket) : socket_(std::move(socket)) {}
 
 // Initiate the asynchronous operations associated with the connection.
-void http_connection::start()
+void server::http_connection::start()
 {
     read_request();
     check_deadline();
 }
 
 // Asynchronously receive a complete request message.
-void http_connection::read_request()
+void server::http_connection::read_request()
 {
     auto self = shared_from_this();
 
@@ -37,7 +37,7 @@ void http_connection::read_request()
 }
 
 // Determine what needs to be done with the request message.
-void http_connection::process_request()
+void server::http_connection::process_request()
 {
     response_.version(request_.version());
     response_.keep_alive(false);
@@ -78,7 +78,7 @@ void http_connection::process_request()
 }
 
 // Asynchronously transmit the response message.
-void http_connection::write_response()
+void server::http_connection::write_response()
 {
     auto self = shared_from_this();
 
@@ -95,7 +95,7 @@ void http_connection::write_response()
 }
 
 // Check whether we have spent enough time on this connection.
-void http_connection::check_deadline()
+void server::http_connection::check_deadline()
 {
     auto self = shared_from_this();
 

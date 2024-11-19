@@ -20,7 +20,7 @@
 using namespace boost::mysql;
 
 // Object part
-data_base_manager::data_base_manager(
+services::data_base_manager::data_base_manager(
         const u_int64_t &manager_ID,
         const std::string &manager_login, 
         const std::string &manager_password, 
@@ -42,10 +42,7 @@ data_base_manager::data_base_manager(
     conn.connect(*endpoints.begin(), params);
 
     this->update_tables();
-
-    this->manager = new profile;
-    this->manager->login = manager_login;
-    this->manager->password = manager_password;
+    this->manager = new models::profile;
 
     try {
         std::stringstream request;
@@ -67,6 +64,8 @@ data_base_manager::data_base_manager(
         if (profile.size()) {
             this->manager->ID = profile.at(0).at(0).get_uint64();
             this->manager->name = profile.at(0).at(1).get_string();
+            this->manager->login = profile.at(0).at(2).get_string();
+            this->manager->password = profile.at(0).at(3).get_string();
             this->manager->email = profile.at(0).at(4).get_string();
             this->manager->phone = profile.at(0).at(5).get_string();
         }
@@ -76,19 +75,19 @@ data_base_manager::data_base_manager(
     }
 }
 
-data_base_manager::~data_base_manager() {
+services::data_base_manager::~data_base_manager() {
     this->clean_room_table();
 
     delete this->manager;
     conn.close();
 }
 
-auto data_base_manager::get_manager() -> profile {
+auto services::data_base_manager::get_manager() -> models::profile {
     return *this->manager;
 }
 
 //Table part
-auto data_base_manager::create_profiles_table() -> void {
+auto services::data_base_manager::create_profiles_table() -> void {
     try {
         conn.query(
         R"%(
@@ -108,7 +107,7 @@ auto data_base_manager::create_profiles_table() -> void {
     }
 }   
 
-auto data_base_manager::create_rooms_table() -> void {
+auto services::data_base_manager::create_rooms_table() -> void {
     try {
         conn.query(
         R"%(
@@ -127,7 +126,7 @@ auto data_base_manager::create_rooms_table() -> void {
     }
 }
 
-auto data_base_manager::create_profile_room_table() -> void {
+auto services::data_base_manager::create_profile_room_table() -> void {
     try {
         conn.query(
         R"%(
@@ -147,7 +146,7 @@ auto data_base_manager::create_profile_room_table() -> void {
     }
 }
 
-auto data_base_manager::create_tasks_table() -> void {
+auto services::data_base_manager::create_tasks_table() -> void {
     try {
         conn.query(
         R"%(
@@ -175,7 +174,7 @@ auto data_base_manager::create_tasks_table() -> void {
     }
 }
 
-auto data_base_manager::create_configs_table() -> void {
+auto services::data_base_manager::create_configs_table() -> void {
     try {
         conn.query(
         R"%(
@@ -193,7 +192,7 @@ auto data_base_manager::create_configs_table() -> void {
     }
 }
 
-auto data_base_manager::create_assignees_table() -> void {
+auto services::data_base_manager::create_assignees_table() -> void {
     try {
         conn.query(
         R"%(
@@ -214,7 +213,7 @@ auto data_base_manager::create_assignees_table() -> void {
     }
 }
 
-auto data_base_manager::create_reviewers_table() -> void {
+auto services::data_base_manager::create_reviewers_table() -> void {
     try {
         conn.query(
         R"%(
@@ -235,7 +234,7 @@ auto data_base_manager::create_reviewers_table() -> void {
     }
 }
 
-auto data_base_manager::create_invites_table() -> void {
+auto services::data_base_manager::create_invites_table() -> void {
     try {
         conn.query(
         R"%(
@@ -257,7 +256,7 @@ auto data_base_manager::create_invites_table() -> void {
     }
 }
 
-auto data_base_manager::clean_room_table() -> void {
+auto services::data_base_manager::clean_room_table() -> void {
     try {
     conn.query(R"%(
             DELETE rooms FROM rooms LEFT JOIN
@@ -279,13 +278,13 @@ auto data_base_manager::clean_room_table() -> void {
 }
 
 // Profile part
-auto data_base_manager::create_profile(
+auto services::data_base_manager::create_profile(
         const std::string &name,
         const std::string &login,
         const std::string &password,
         const std::string &email,
         const std::string &phone,
-        profile &result_profile) -> DATA_BASE_EXECUTION_STATUS {
+        models::profile &profile) -> DATA_BASE_EXECUTION_STATUS {
     try {
         std::stringstream request;
 
@@ -356,14 +355,14 @@ auto data_base_manager::create_profile(
 
         request.str(std::string());
 
-        struct config default_config;
+        models::config config;
 
         request << "INSERT INTO configs (profile_ID, avatar, configuration) VALUES ("
                 << profile_ID
                 << ", '"
-                << default_config.avatar
+                << config.avatar
                 << "', '"
-                << default_config.configuration
+                << config.configuration
                 << "')";
 
         std::cout << request.str() << std::endl;
@@ -372,7 +371,7 @@ auto data_base_manager::create_profile(
 
         auto status = this->get_profile_by_ID(profile_ID, *this->manager);
 
-        result_profile = *this->manager;
+        profile = *this->manager;
 
         return status;
     } catch (boost::mysql::error_with_diagnostics &exception) {
@@ -383,9 +382,9 @@ auto data_base_manager::create_profile(
     }
 }
 
-auto data_base_manager::get_profile_by_ID(
+auto services::data_base_manager::get_profile_by_ID(
         const u_int64_t profile_ID, 
-        profile &result_profile) -> DATA_BASE_EXECUTION_STATUS {
+        models::profile &profile) -> DATA_BASE_EXECUTION_STATUS {
     try {
         std::stringstream request;
 
@@ -399,7 +398,7 @@ auto data_base_manager::get_profile_by_ID(
         auto profiles = this->convert_data_base_response_to_matrix(result.rows());
 
         if (profiles.size()) {
-            result_profile = profiles.at(0);
+            profile = profiles.at(0);
             
             return DATA_BASE_COMPLETED_SUCCESSFULY;
         }
@@ -413,9 +412,9 @@ auto data_base_manager::get_profile_by_ID(
     }
 }
 
-auto data_base_manager::update_profile_config(const char *avatar, const char *configuration) -> DATA_BASE_EXECUTION_STATUS {
+auto services::data_base_manager::update_profile_config(const char *avatar, const char *configuration) -> DATA_BASE_EXECUTION_STATUS {
     try {
-        struct config config;
+        models::config config;
 
         auto status = get_profile_config(config);
 
@@ -444,9 +443,9 @@ auto data_base_manager::update_profile_config(const char *avatar, const char *co
     }
 }
 
-auto data_base_manager::get_profile_config(config &result_config) -> DATA_BASE_EXECUTION_STATUS {
+auto services::data_base_manager::get_profile_config(models::config &config) -> DATA_BASE_EXECUTION_STATUS {
     try {
-        struct profile profile;
+        models::profile profile;
 
         auto status = get_profile_by_ID(this->manager->ID, profile);
 
@@ -466,7 +465,7 @@ auto data_base_manager::get_profile_config(config &result_config) -> DATA_BASE_E
         auto configs = this->convert_data_base_response_to_matrix(result.rows());
 
         if (configs.size()) {
-            result_config = configs.at(0);
+            config = configs.at(0);
 
             return DATA_BASE_COMPLETED_SUCCESSFULY;
         }
@@ -480,9 +479,9 @@ auto data_base_manager::get_profile_config(config &result_config) -> DATA_BASE_E
     }
 }
         
-auto data_base_manager::get_profile_assigned_tasks(std::vector<task> &result_tasks) -> DATA_BASE_EXECUTION_STATUS {
+auto services::data_base_manager::get_profile_assigned_tasks(std::vector<models::task> &tasks) -> DATA_BASE_EXECUTION_STATUS {
     try {
-        struct profile profile;
+        models::profile profile;
 
         auto status = get_profile_by_ID(this->manager->ID, profile);
 
@@ -500,12 +499,12 @@ auto data_base_manager::get_profile_assigned_tasks(std::vector<task> &result_tas
 
         conn.execute(request.str(), result);
 
-        auto tasks = this->convert_data_base_response_to_matrix(result.rows());
+        auto curr_tasks = this->convert_data_base_response_to_matrix(result.rows());
 
-        for (auto task : tasks) {
-            struct task curr_task = task;
+        for (auto task : curr_tasks) {
+            models::task curr_task = task;
 
-            struct profile task_creator;
+            models::profile task_creator;
 
             auto status = this->get_profile_by_ID(curr_task.creator_ID, task_creator);
 
@@ -514,7 +513,7 @@ auto data_base_manager::get_profile_assigned_tasks(std::vector<task> &result_tas
             else
                 curr_task.creator_name = "пользователся, создавшего данную задачу, более не существует";
 
-            result_tasks.push_back(curr_task);
+            tasks.push_back(curr_task);
         }
 
         return DATA_BASE_COMPLETED_SUCCESSFULY;
@@ -526,9 +525,9 @@ auto data_base_manager::get_profile_assigned_tasks(std::vector<task> &result_tas
     }
 }
 
-auto data_base_manager::get_profile_reviewed_tasks(std::vector<task> &result_tasks) -> DATA_BASE_EXECUTION_STATUS {
+auto services::data_base_manager::get_profile_reviewed_tasks(std::vector<models::task> &tasks) -> DATA_BASE_EXECUTION_STATUS {
     try {
-        struct profile profile;
+        models::profile profile;
 
         auto status = get_profile_by_ID(this->manager->ID, profile);
 
@@ -545,12 +544,12 @@ auto data_base_manager::get_profile_reviewed_tasks(std::vector<task> &result_tas
 
         conn.execute(request.str(), result);
 
-        auto tasks = this->convert_data_base_response_to_matrix(result.rows());
+        auto curr_tasks = this->convert_data_base_response_to_matrix(result.rows());
 
-        for (auto task : tasks) {
-            struct task curr_task = task;
+        for (auto task : curr_tasks) {
+            models::task curr_task = task;
 
-            struct profile task_creator;
+            models::profile task_creator;
 
             auto status = this->get_profile_by_ID(curr_task.creator_ID, task_creator);
 
@@ -559,7 +558,7 @@ auto data_base_manager::get_profile_reviewed_tasks(std::vector<task> &result_tas
             else
                 curr_task.creator_name = "пользователся, создавшего данную задачу, более не существует";
 
-            result_tasks.push_back(curr_task);
+            tasks.push_back(curr_task);
         }
 
         return DATA_BASE_COMPLETED_SUCCESSFULY;
@@ -571,7 +570,7 @@ auto data_base_manager::get_profile_reviewed_tasks(std::vector<task> &result_tas
     }
 }
 
-auto data_base_manager::get_profile_received_invites(std::vector<invite> &result_invites) -> DATA_BASE_EXECUTION_STATUS {
+auto services::data_base_manager::get_profile_received_invites(std::vector<models::invite> &invites) -> DATA_BASE_EXECUTION_STATUS {
     try {
         std::stringstream request;
 
@@ -582,14 +581,14 @@ auto data_base_manager::get_profile_received_invites(std::vector<invite> &result
 
         conn.execute(request.str(), result);
 
-        auto invites = this->convert_data_base_response_to_matrix(result.rows());
+        auto curr_invites = this->convert_data_base_response_to_matrix(result.rows());
 
-        for (auto invite : invites) {
-            struct invite curr_invite = invite;
+        for (auto invite : curr_invites) {
+            models::invite curr_invite = invite;
 
             curr_invite.receiver_name = this->manager->name;
 
-            struct profile sender;
+            models::profile sender;
 
             auto sender_ID = invite.at(0).get_uint64();
 
@@ -600,7 +599,7 @@ auto data_base_manager::get_profile_received_invites(std::vector<invite> &result
 
             curr_invite.sender_name = sender.name;
 
-            result_invites.push_back(curr_invite);
+            invites.push_back(curr_invite);
         }
 
         return DATA_BASE_COMPLETED_SUCCESSFULY;
@@ -612,7 +611,7 @@ auto data_base_manager::get_profile_received_invites(std::vector<invite> &result
     }
 }
 
-auto data_base_manager::get_profile_sended_invites(std::vector<invite> &result_invites) -> DATA_BASE_EXECUTION_STATUS {
+auto services::data_base_manager::get_profile_sended_invites(std::vector<models::invite> &invites) -> DATA_BASE_EXECUTION_STATUS {
     try {
         std::stringstream request;
 
@@ -623,14 +622,14 @@ auto data_base_manager::get_profile_sended_invites(std::vector<invite> &result_i
 
         conn.execute(request.str(), result);
 
-        auto invites = this->convert_data_base_response_to_matrix(result.rows());
+        auto curr_invites = this->convert_data_base_response_to_matrix(result.rows());
 
-        for (auto invite : invites) {
-            struct invite curr_invite = invite;
+        for (auto invite : curr_invites) {
+            models::invite curr_invite = invite;
 
             curr_invite.sender_name = this->manager->name;
 
-            struct profile receiver;
+            models::profile receiver;
 
             auto receiver_ID = invite.at(1).get_uint64();
 
@@ -641,7 +640,7 @@ auto data_base_manager::get_profile_sended_invites(std::vector<invite> &result_i
 
             curr_invite.receiver_name = receiver.name;
 
-            result_invites.push_back(curr_invite);
+            invites.push_back(curr_invite);
         }
 
         return DATA_BASE_COMPLETED_SUCCESSFULY;
@@ -653,7 +652,7 @@ auto data_base_manager::get_profile_sended_invites(std::vector<invite> &result_i
     }
 }
 
-auto data_base_manager::delete_profile() -> DATA_BASE_EXECUTION_STATUS
+auto services::data_base_manager::delete_profile() -> DATA_BASE_EXECUTION_STATUS
 {
     try {
         std::stringstream request;
@@ -694,7 +693,7 @@ auto data_base_manager::delete_profile() -> DATA_BASE_EXECUTION_STATUS
     }
 }
 
-auto data_base_manager::loggin_profile(const std::string &login, const std::string &password, profile &result_profile) -> DATA_BASE_EXECUTION_STATUS
+auto services::data_base_manager::loggin_profile(const std::string &login, const std::string &password, models::profile &profile) -> DATA_BASE_EXECUTION_STATUS
 {
     try {     
         std::stringstream request;
@@ -713,7 +712,7 @@ auto data_base_manager::loggin_profile(const std::string &login, const std::stri
 
         for (auto profile : profiles) {
             *this->manager = profile;
-            result_profile = profile;
+            profile = profile;
 
             return DATA_BASE_COMPLETED_SUCCESSFULY;
         }
@@ -727,14 +726,14 @@ auto data_base_manager::loggin_profile(const std::string &login, const std::stri
     }
 }
 
-auto data_base_manager::profile_authenticate(profile &result_profile) -> DATA_BASE_EXECUTION_STATUS {
-    return this->loggin_profile(this->manager->login, this->manager->password, result_profile);
+auto services::data_base_manager::profile_authenticate(models::profile &profile) -> DATA_BASE_EXECUTION_STATUS {
+    return this->loggin_profile(this->manager->login, this->manager->password, profile);
 }
 
-auto data_base_manager::get_profiles_with_substr_in_name(
+auto services::data_base_manager::get_profiles_with_substr_in_name(
         const std::string &substr, 
         const u_int64_t offset,
-        std::vector<profile> &result_profiles) -> DATA_BASE_EXECUTION_STATUS {
+        std::vector<models::profile> &profiles) -> DATA_BASE_EXECUTION_STATUS {
     try {
         std::stringstream request;
         
@@ -749,12 +748,12 @@ auto data_base_manager::get_profiles_with_substr_in_name(
 
         conn.execute(request.str(), result);
 
-        auto profiles = this->convert_data_base_response_to_matrix(result.rows());
+        auto curr_profiles = this->convert_data_base_response_to_matrix(result.rows());
 
-        for (auto profile : profiles) {
-            struct profile curr_profile = profile;
+        for (auto profile : curr_profiles) {
+            models::profile curr_profile = profile;
 
-            result_profiles.push_back(curr_profile);
+            profiles.push_back(curr_profile);
         }
 
         return DATA_BASE_COMPLETED_SUCCESSFULY;
@@ -767,12 +766,12 @@ auto data_base_manager::get_profiles_with_substr_in_name(
 }
 
 // Room part
-auto data_base_manager::create_room(
+auto services::data_base_manager::create_room(
         const std::string &room_name, 
         const std::string &description, 
-        room &result_room) -> DATA_BASE_EXECUTION_STATUS {
+        models::room &room) -> DATA_BASE_EXECUTION_STATUS {
     try {
-        struct profile profile;
+        models::profile profile;
 
         auto status = this->get_profile_by_ID(this->manager->ID, profile);
         
@@ -824,7 +823,7 @@ auto data_base_manager::create_room(
 
         conn.query(request.str(), result);
 
-        return this->get_room(this->manager->ID, room_name, result_room);
+        return this->get_room(this->manager->ID, room_name, room);
     } catch (boost::mysql::error_with_diagnostics &exception) {
         std::cout << exception.get_diagnostics().server_message() << std::endl;
         std::cout << exception.get_diagnostics().client_message() << std::endl;
@@ -833,10 +832,10 @@ auto data_base_manager::create_room(
     }
 }
 
-auto data_base_manager::get_room(
+auto services::data_base_manager::get_room(
         const u_int64_t room_creator_ID, 
         const std::string &room_name, 
-        room &result_room) -> DATA_BASE_EXECUTION_STATUS {
+        models::room &room) -> DATA_BASE_EXECUTION_STATUS {
     try {
         std::stringstream request;
 
@@ -872,16 +871,16 @@ auto data_base_manager::get_room(
             return DATA_BASE_ROOM_ACCESS_ERROR;
 
         if (rooms.size()) {
-            result_room = rooms.at(0);
+            room = rooms.at(0);
 
-            struct profile creator_profile;
+            models::profile creator_profile;
 
-            auto status = this->get_profile_by_ID(result_room.creator_ID, creator_profile);
+            auto status = this->get_profile_by_ID(room.creator_ID, creator_profile);
             
             if (!status)
-                result_room.creator_name = creator_profile.name;
+                room.creator_name = creator_profile.name;
             else
-                result_room.creator_name = "пользователя, создавшего данную комнату, более не существует";
+                room.creator_name = "пользователя, создавшего данную комнату, более не существует";
 
             return DATA_BASE_COMPLETED_SUCCESSFULY;
         }
@@ -895,7 +894,7 @@ auto data_base_manager::get_room(
     }
 }
 
-auto data_base_manager::leave_from_room(
+auto services::data_base_manager::leave_from_room(
         u_int64_t room_creator_ID, 
         std::string room_name) -> DATA_BASE_EXECUTION_STATUS {
     try {
@@ -940,11 +939,11 @@ auto data_base_manager::leave_from_room(
     }
 }
 
-auto data_base_manager::delete_room(
+auto services::data_base_manager::delete_room(
         const u_int64_t room_creator_ID, 
         const std::string &room_name) -> DATA_BASE_EXECUTION_STATUS {
     try {
-        struct room room;
+        models::room room;
         
         auto status = this->get_room(room_creator_ID, room_name, room);
 
@@ -973,7 +972,7 @@ auto data_base_manager::delete_room(
 }
 
 // Task part
-auto data_base_manager::create_task(
+auto services::data_base_manager::create_task(
         const u_int64_t room_creator_ID, 
         const std::string &room_name,
         const std::string &task_name,
@@ -981,16 +980,16 @@ auto data_base_manager::create_task(
         const std::string &label,
         const u_int64_t task_status,
         const time_t &time_to_live,
-        task &result_task) -> DATA_BASE_EXECUTION_STATUS {
+        models::task &task) -> DATA_BASE_EXECUTION_STATUS {
     try {
-        struct profile profile;
+        models::profile profile;
 
         auto status = this->get_profile_by_ID(this->manager->ID, profile);
         
         if (status)
             return status;
 
-        struct room room;
+        models::room room;
         
         status = this->get_room(room_creator_ID, room_name, room);
 
@@ -1014,7 +1013,7 @@ auto data_base_manager::create_task(
         if (tasks.size())
             return DATA_BASE_TASK_WITH_SUCH_PARAMETERS_IS_ALREADY_EXIST;
         
-        struct timer task_creation_timer(time_to_live);
+        models::timer task_creation_timer(time_to_live);
 
         request.str(std::string());
 
@@ -1042,7 +1041,7 @@ auto data_base_manager::create_task(
 
         conn.query(request.str(), result);
 
-        return this->get_task(room_creator_ID, room_name, task_name, result_task);
+        return this->get_task(room_creator_ID, room_name, task_name, task);
     } catch (boost::mysql::error_with_diagnostics &exception) {
         std::cout << exception.get_diagnostics().server_message() << std::endl;
         std::cout << exception.get_diagnostics().client_message() << std::endl;
@@ -1051,20 +1050,20 @@ auto data_base_manager::create_task(
     }
 }
 
-auto data_base_manager::add_task_to_assignee(
+auto services::data_base_manager::add_task_to_assignee(
         const u_int64_t room_creator_ID,
         const std::string &room_name,
         const std::string &task_name,
         const u_int64_t assignee_ID) -> DATA_BASE_EXECUTION_STATUS {
     try {
-        struct profile assignee;
+        models::profile assignee;
 
         auto status = get_profile_by_ID(assignee_ID, assignee);
 
         if (status)
             return status;
 
-        struct task task;
+        models::task task;
 
         status = get_task(room_creator_ID, room_name, task_name, task);
 
@@ -1117,20 +1116,20 @@ auto data_base_manager::add_task_to_assignee(
     }
 }
 
-auto data_base_manager::add_task_to_reviewer(
+auto services::data_base_manager::add_task_to_reviewer(
         const u_int64_t room_creator_ID,
         const std::string &room_name,
         const std::string &task_name,
         const u_int64_t reviewer_ID) -> DATA_BASE_EXECUTION_STATUS {
     try {
-        struct profile reviewer;
+        models::profile reviewer;
 
         auto status = get_profile_by_ID(reviewer_ID, reviewer);
 
         if (status)
             return status;
 
-        struct task task;
+        models::task task;
 
         status = get_task(room_creator_ID, room_name, task_name, task);
 
@@ -1183,13 +1182,13 @@ auto data_base_manager::add_task_to_reviewer(
     }
 }
 
-auto data_base_manager::get_task(
+auto services::data_base_manager::get_task(
         const u_int64_t room_creator_ID, 
         const std::string &room_name, 
         const std::string &task_name, 
-        task &result_task) -> DATA_BASE_EXECUTION_STATUS {
+        models::task &task) -> DATA_BASE_EXECUTION_STATUS {
     try {
-        struct room room;
+        models::room room;
     
         auto status = this->get_room(room_creator_ID, room_name, room);
 
@@ -1213,16 +1212,16 @@ auto data_base_manager::get_task(
         auto tasks = this->convert_data_base_response_to_matrix(result.rows());
 
         if (tasks.size()) {
-            result_task = tasks.at(0);
+            task = tasks.at(0);
 
-            struct profile task_creator;
+            models::profile task_creator;
 
-            status = this->get_profile_by_ID(result_task.creator_ID, task_creator);
+            status = this->get_profile_by_ID(task.creator_ID, task_creator);
 
             if (!status)
-                result_task.creator_name = task_creator.name;
+                task.creator_name = task_creator.name;
             else
-                result_task.creator_name = "пользователя, создавшего данную задачу, более не существует";
+                task.creator_name = "пользователя, создавшего данную задачу, более не существует";
 
             return DATA_BASE_COMPLETED_SUCCESSFULY;
         }
@@ -1236,13 +1235,13 @@ auto data_base_manager::get_task(
     }
 }
 
-auto data_base_manager::get_task_assignees(
+auto services::data_base_manager::get_task_assignees(
         const u_int64_t room_creator_ID,
         const std::string &room_name, 
         const std::string &task_name, 
-        std::vector<profile> &result_assignees) -> DATA_BASE_EXECUTION_STATUS {
+        std::vector<models::profile> &assignees) -> DATA_BASE_EXECUTION_STATUS {
     try {
-        struct task task;
+        models::task task;
         
         auto status = this->get_task(room_creator_ID, room_name, task_name, task);
 
@@ -1266,9 +1265,9 @@ auto data_base_manager::get_task_assignees(
         auto profiles = this->convert_data_base_response_to_matrix(result.rows());
 
         for (auto profile : profiles) {
-            struct profile curr_profile = profile;
+            models::profile curr_profile = profile;
 
-            result_assignees.push_back(curr_profile);
+            assignees.push_back(curr_profile);
         }
 
         return DATA_BASE_COMPLETED_SUCCESSFULY;
@@ -1280,13 +1279,13 @@ auto data_base_manager::get_task_assignees(
     }
 }
 
-auto data_base_manager::get_task_reviewers(
+auto services::data_base_manager::get_task_reviewers(
         const u_int64_t room_creator_ID,
         const std::string &room_name, 
         const std::string &task_name, 
-        std::vector<profile> &result_reviewers) -> DATA_BASE_EXECUTION_STATUS {
+        std::vector<models::profile> &reviewers) -> DATA_BASE_EXECUTION_STATUS {
     try {
-        struct task task;
+        models::task task;
         
         auto status = this->get_task(room_creator_ID, room_name, task_name, task);
 
@@ -1310,9 +1309,9 @@ auto data_base_manager::get_task_reviewers(
         auto profiles = this->convert_data_base_response_to_matrix(result.rows());
 
         for (auto profile : profiles) {
-            struct profile curr_profile = profile;
+            models::profile curr_profile = profile;
 
-            result_reviewers.push_back(curr_profile);
+            reviewers.push_back(curr_profile);
         }
 
         return DATA_BASE_COMPLETED_SUCCESSFULY;
@@ -1324,12 +1323,12 @@ auto data_base_manager::get_task_reviewers(
     }
 }
 
-auto data_base_manager::delete_task(
+auto services::data_base_manager::delete_task(
         const u_int64_t room_creator_ID,
         const std::string &room_name,
         const std::string &task_name) -> DATA_BASE_EXECUTION_STATUS{
     try {
-        struct room room;
+        models::room room;
         
         auto status = this->get_room(room_creator_ID, room_name, room);
 
@@ -1378,20 +1377,20 @@ auto data_base_manager::delete_task(
     }
 }
     
-auto data_base_manager::remove_task_from_assignee(
+auto services::data_base_manager::remove_task_from_assignee(
         const u_int64_t room_creator_ID,
         const std::string &room_name,
         const std::string &task_name,
         const u_int64_t assignee_ID) -> DATA_BASE_EXECUTION_STATUS {
     try {
-        struct profile assignee;
+        models::profile assignee;
 
         auto status = get_profile_by_ID(assignee_ID, assignee);
 
         if (status)
             return status;
 
-        struct task task;
+        models::task task;
 
         status = get_task(room_creator_ID, room_name, task_name, task);
 
@@ -1444,20 +1443,20 @@ auto data_base_manager::remove_task_from_assignee(
     }
 }
 
-auto data_base_manager::remove_task_from_reviewer(
+auto services::data_base_manager::remove_task_from_reviewer(
         const u_int64_t room_creator_ID,
         const std::string &room_name,
         const std::string &task_name,
         const u_int64_t reviewer_ID) -> DATA_BASE_EXECUTION_STATUS {
     try {
-        struct profile reviewer;
+        models::profile reviewer;
 
         auto status = get_profile_by_ID(reviewer_ID, reviewer);
 
         if (status)
             return status;
 
-        struct task task;
+        models::task task;
 
         status = get_task(room_creator_ID, room_name, task_name, task);
 
@@ -1512,20 +1511,20 @@ auto data_base_manager::remove_task_from_reviewer(
 
 
 //Invite part
-auto data_base_manager::create_invite(
+auto services::data_base_manager::create_invite(
         const u_int64_t receiver_ID, 
         const u_int64_t room_creator_ID, 
         const std::string room_name,
-        invite &result_invite) -> DATA_BASE_EXECUTION_STATUS {
+        models::invite &invite) -> DATA_BASE_EXECUTION_STATUS {
     try {
-        struct profile member;
+        models::profile member;
 
         auto status = this->get_profile_by_ID(receiver_ID, member);
 
         if (status)
             return  status;
 
-        struct room room;
+        models::room room;
 
         status = this->get_room(room_creator_ID, room_name, room);
 
@@ -1536,21 +1535,21 @@ auto data_base_manager::create_invite(
                                   receiver_ID, 
                                   room.creator_ID, 
                                   room.name, 
-                                  result_invite);
+                                  invite);
 
         if (!status)
             return DATA_BASE_INVITE_ALREADY_SENDED;
 
-        std::vector<profile> result_profiles;
+        std::vector<models::profile> profiles;
 
-        status = this->get_room_profiles(room.creator_ID, room.name, result_profiles);
+        status = this->get_room_profiles(room.creator_ID, room.name, profiles);
 
         if (status)
             return status;
 
-        std::cout << result_profiles.size() << std::endl;
+        std::cout << profiles.size() << std::endl;
 
-        for (auto profile : result_profiles) {
+        for (auto profile : profiles) {
             if (receiver_ID == profile.ID)
                 return DATA_BASE_THIS_PROFILE_IS_ALREADY_EXIST_IN_THIS_ROOM;
         }
@@ -1575,7 +1574,7 @@ auto data_base_manager::create_invite(
                                 receiver_ID, 
                                 room.creator_ID, 
                                 room.name, 
-                                result_invite);
+                                invite);
     } catch (boost::mysql::error_with_diagnostics &exception) {
         std::cout << exception.get_diagnostics().server_message() << std::endl;
         std::cout << exception.get_diagnostics().client_message() << std::endl;
@@ -1584,12 +1583,12 @@ auto data_base_manager::create_invite(
     }
 }    
 
-auto data_base_manager::get_invite(
+auto services::data_base_manager::get_invite(
         const u_int64_t sender_ID, 
         const u_int64_t receiver_ID, 
         const u_int64_t room_creator_ID, 
         const std::string room_name,
-        invite &result_invite) -> DATA_BASE_EXECUTION_STATUS {
+        models::invite &invite) -> DATA_BASE_EXECUTION_STATUS {
     try {
         if (!((sender_ID == this->manager->ID) || (receiver_ID == this->manager->ID)))
             return DATA_BASE_THETE_IS_NO_ACCESS_FOR_THIS_INVITE;
@@ -1615,23 +1614,23 @@ auto data_base_manager::get_invite(
         if (!invites.size())
             return DATA_BASE_THERE_IS_NO_INVITES_WITH_SUCH_PARAMETERS;
 
-        result_invite = invites.at(0); 
+        invite = invites.at(0); 
 
-        profile sender, receiver;
+        models::profile sender, receiver;
 
         auto status = this->get_profile_by_ID(sender_ID, sender);
 
         if (status)
             return status;
 
-        result_invite.sender_name = sender.name;
+        invite.sender_name = sender.name;
 
         status = this->get_profile_by_ID(receiver_ID, receiver);
 
         if (status)
             return status;
 
-        result_invite.receiver_name = receiver.name;
+        invite.receiver_name = receiver.name;
 
         return DATA_BASE_COMPLETED_SUCCESSFULY;
     } catch (boost::mysql::error_with_diagnostics &exception) {
@@ -1642,10 +1641,10 @@ auto data_base_manager::get_invite(
     }
 }
 
-auto data_base_manager::accept_invite(
+auto services::data_base_manager::accept_invite(
         u_int64_t room_creator_ID, 
         std::string room_name,
-        invite &accepted_invite) -> DATA_BASE_EXECUTION_STATUS {
+        models::invite &accepted_invite) -> DATA_BASE_EXECUTION_STATUS {
     try {
         std::stringstream request;
 
@@ -1668,7 +1667,7 @@ auto data_base_manager::accept_invite(
 
         accepted_invite = invites.at(0);
 
-        profile sender, receiver;
+        models::profile sender, receiver;
 
         auto status = this->get_profile_by_ID(invites.at(0).at(0).get_uint64(), sender);
 
@@ -1722,11 +1721,11 @@ auto data_base_manager::accept_invite(
     }
 }
 
-auto data_base_manager::delete_sended_invite(
+auto services::data_base_manager::delete_sended_invite(
             u_int64_t receiver_ID, 
             u_int64_t room_creator_ID, 
             std::string room_name,
-            invite &deleted_invite) -> DATA_BASE_EXECUTION_STATUS {
+            models::invite &deleted_invite) -> DATA_BASE_EXECUTION_STATUS {
     return this->delete_invite(this->manager->ID, 
                                receiver_ID, 
                                room_creator_ID,
@@ -1734,11 +1733,11 @@ auto data_base_manager::delete_sended_invite(
                                deleted_invite);
 }
 
-auto data_base_manager::delete_received_invite(
+auto services::data_base_manager::delete_received_invite(
         u_int64_t sender_ID, 
         u_int64_t room_creator_ID, 
         std::string room_name,
-        invite &deleted_invite) -> DATA_BASE_EXECUTION_STATUS {
+        models::invite &deleted_invite) -> DATA_BASE_EXECUTION_STATUS {
     return this->delete_invite(sender_ID,
                                this->manager->ID, 
                                room_creator_ID,
@@ -1746,12 +1745,12 @@ auto data_base_manager::delete_received_invite(
                                deleted_invite);
 }
 
-auto data_base_manager::delete_invite(
+auto services::data_base_manager::delete_invite(
         u_int64_t sender_ID,
         u_int64_t receiver_ID, 
         u_int64_t room_creator_ID, 
         std::string room_name,
-        invite &deleted_invite) -> DATA_BASE_EXECUTION_STATUS {
+        models::invite &deleted_invite) -> DATA_BASE_EXECUTION_STATUS {
     try {
         auto status = this->get_invite(sender_ID, receiver_ID, room_creator_ID, room_name, deleted_invite);
         
@@ -1787,9 +1786,9 @@ auto data_base_manager::delete_invite(
 
 
 // Join part
-auto data_base_manager::get_profile_rooms(std::vector<room> &result_rooms) -> DATA_BASE_EXECUTION_STATUS {
+auto services::data_base_manager::get_profile_rooms(std::vector<models::room> &rooms) -> DATA_BASE_EXECUTION_STATUS {
     try {
-        struct profile profile;
+        models::profile profile;
 
         auto status = this->get_profile_by_ID(this->manager->ID, profile);
 
@@ -1805,12 +1804,12 @@ auto data_base_manager::get_profile_rooms(std::vector<room> &result_rooms) -> DA
                 
         conn.execute(request.str(), result);
 
-        auto rooms = this->convert_data_base_response_to_matrix(result.rows());
+        auto curr_rooms = this->convert_data_base_response_to_matrix(result.rows());
 
-        for (auto room : rooms) {
-            struct room curr_room  = room;
+        for (auto room : curr_rooms) {
+            models::room curr_room  = room;
 
-            struct profile room_creator;
+            models::profile room_creator;
 
             auto status = this->get_profile_by_ID(curr_room.creator_ID, room_creator);
 
@@ -1819,7 +1818,7 @@ auto data_base_manager::get_profile_rooms(std::vector<room> &result_rooms) -> DA
             else
                 curr_room.creator_name = "пользователя, создавшего данную комнату, более не существует";
 
-            result_rooms.push_back(curr_room);
+            rooms.push_back(curr_room);
         }
 
         return DATA_BASE_COMPLETED_SUCCESSFULY;
@@ -1831,9 +1830,9 @@ auto data_base_manager::get_profile_rooms(std::vector<room> &result_rooms) -> DA
     }
 }
 
-auto data_base_manager::get_profile_tasks(std::vector<task> &result_tasks) -> DATA_BASE_EXECUTION_STATUS {
+auto services::data_base_manager::get_profile_tasks(std::vector<models::task> &tasks) -> DATA_BASE_EXECUTION_STATUS {
     try {
-        struct profile profile;
+        models::profile profile;
 
         auto status = this->get_profile_by_ID(this->manager->ID, profile);
 
@@ -1850,12 +1849,12 @@ auto data_base_manager::get_profile_tasks(std::vector<task> &result_tasks) -> DA
 
         conn.execute(request.str(), result);
 
-        auto tasks = this->convert_data_base_response_to_matrix(result.rows());
+        auto curr_tasks = this->convert_data_base_response_to_matrix(result.rows());
 
-        for (auto task : tasks) {
-            struct task curr_task = task;
+        for (auto task : curr_tasks) {
+            models::task curr_task = task;
 
-            struct profile task_creator;
+            models::profile task_creator;
 
             auto status = this->get_profile_by_ID(curr_task.creator_ID, task_creator);
 
@@ -1864,7 +1863,7 @@ auto data_base_manager::get_profile_tasks(std::vector<task> &result_tasks) -> DA
             else
                 curr_task.creator_name = "пользователся, создавшего данную задачу, более не существует";
 
-            result_tasks.push_back(curr_task);
+            tasks.push_back(curr_task);
         }
 
         return DATA_BASE_COMPLETED_SUCCESSFULY;
@@ -1876,9 +1875,9 @@ auto data_base_manager::get_profile_tasks(std::vector<task> &result_tasks) -> DA
     }
 }
 
-auto data_base_manager::get_room_profiles(const u_int64_t room_creator_ID, const std::string &room_name, std::vector<profile> &result_profiles) -> DATA_BASE_EXECUTION_STATUS {
+auto services::data_base_manager::get_room_profiles(const u_int64_t room_creator_ID, const std::string &room_name, std::vector<models::profile> &profiles) -> DATA_BASE_EXECUTION_STATUS {
     try {
-        struct room room;
+        models::room room;
 
         auto status = this->get_room(room_creator_ID, room_name, room);
 
@@ -1899,12 +1898,12 @@ auto data_base_manager::get_room_profiles(const u_int64_t room_creator_ID, const
 
         conn.execute(request.str(), result);
 
-        auto profiles = this->convert_data_base_response_to_matrix(result.rows());
+        auto curr_profiles = this->convert_data_base_response_to_matrix(result.rows());
 
-        for (auto profile : profiles) {
-            struct profile curr_profile = profile;
+        for (auto profile : curr_profiles) {
+            models::profile curr_profile = profile;
 
-            result_profiles.push_back(curr_profile);
+            profiles.push_back(curr_profile);
         }
 
         return DATA_BASE_COMPLETED_SUCCESSFULY;
@@ -1916,9 +1915,9 @@ auto data_base_manager::get_room_profiles(const u_int64_t room_creator_ID, const
     }
 }
 
-auto data_base_manager::get_room_tasks(const u_int64_t room_creator_ID, const std::string &room_name, std::vector<task> &result_tasks) -> DATA_BASE_EXECUTION_STATUS {
+auto services::data_base_manager::get_room_tasks(const u_int64_t room_creator_ID, const std::string &room_name, std::vector<models::task> &tasks) -> DATA_BASE_EXECUTION_STATUS {
     try {
-        struct room room;
+        models::room room;
 
         auto status = this->get_room(room_creator_ID, room_name, room);
 
@@ -1939,12 +1938,12 @@ auto data_base_manager::get_room_tasks(const u_int64_t room_creator_ID, const st
 
         conn.execute(request.str(), result);
 
-        auto tasks = this->convert_data_base_response_to_matrix(result.rows());
+        auto curr_tasks = this->convert_data_base_response_to_matrix(result.rows());
         
-        for (auto task : tasks) {
-            struct task curr_task  = task;
+        for (auto task : curr_tasks) {
+            models::task curr_task  = task;
 
-            struct profile task_creator;
+            models::profile task_creator;
 
             status = this->get_profile_by_ID(curr_task.creator_ID, task_creator);
 
@@ -1953,7 +1952,7 @@ auto data_base_manager::get_room_tasks(const u_int64_t room_creator_ID, const st
             else
                 curr_task.creator_name = "пользователся, создавшего данную задачу, более не существует";
 
-            result_tasks.push_back(curr_task);
+            tasks.push_back(curr_task);
         }
 
         return DATA_BASE_COMPLETED_SUCCESSFULY;
@@ -1967,7 +1966,7 @@ auto data_base_manager::get_room_tasks(const u_int64_t room_creator_ID, const st
 
 // Data base table management part
 
-auto data_base_manager::convert_data_base_response_to_matrix(const rows_view &rows) -> std::vector<std::vector<boost::mysql::field>> {
+auto services::data_base_manager::convert_data_base_response_to_matrix(const rows_view &rows) -> std::vector<std::vector<boost::mysql::field>> {
     std::vector<std::vector<field>> matrix;
 
     for (auto row : rows) {
@@ -1977,7 +1976,7 @@ auto data_base_manager::convert_data_base_response_to_matrix(const rows_view &ro
     return matrix;
 }
 
-auto data_base_manager::print_tabel(const std::string &name) -> void {
+auto services::data_base_manager::print_tabel(const std::string &name) -> void {
     try {
         std::stringstream request;
 
@@ -1999,7 +1998,7 @@ auto data_base_manager::print_tabel(const std::string &name) -> void {
     }
 }
 
-auto data_base_manager::drop_table(const std::string &name) -> void {
+auto services::data_base_manager::drop_table(const std::string &name) -> void {
     try {
         std::stringstream request;
 
@@ -2029,7 +2028,7 @@ auto data_base_manager::drop_table(const std::string &name) -> void {
     }
 }
 
-auto data_base_manager::update_tables() -> void {
+auto services::data_base_manager::update_tables() -> void {
     try {
         std::stringstream request;
 
@@ -2127,7 +2126,7 @@ auto data_base_manager::update_tables() -> void {
     }
 }
 
-auto data_base_manager::drop_tables() -> void {
+auto services::data_base_manager::drop_tables() -> void {
     drop_table("profiles");
     drop_table("rooms");
     drop_table("profile_room");

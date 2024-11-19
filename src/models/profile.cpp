@@ -1,7 +1,7 @@
 #include "models/profile.h"
 #include <boost/mysql/row.hpp>
 
-profile::profile(std::vector<boost::mysql::field> profile) {
+models::profile::profile(std::vector<boost::mysql::field> profile) {
     this->ID = profile.at(0).get_uint64();
     this->name =profile.at(1).get_string();
     this->login = profile.at(2).get_string();
@@ -10,7 +10,7 @@ profile::profile(std::vector<boost::mysql::field> profile) {
     this->phone = profile.at(5).get_string();        
 }
 
-auto profile::to_json() const -> nlohmann::json {
+auto models::profile::to_json() const -> nlohmann::json {
     return {
             {"ID", this->ID},
             {"name", this->name},
@@ -21,7 +21,7 @@ auto profile::to_json() const -> nlohmann::json {
         };
 }
 
-auto profile::to_public_json() const -> nlohmann::json {
+auto models::profile::to_public_json() const -> nlohmann::json {
     return {
             {"ID", this->ID},
             {"name", this->name},

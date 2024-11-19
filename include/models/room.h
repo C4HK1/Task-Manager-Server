@@ -6,17 +6,19 @@
 #include <nlohmann/json.hpp>
 #include <nlohmann/json_fwd.hpp>
 
-struct room {
-    u_int64_t creator_ID = 0;
-    std::string name;
+namespace models {
+    struct room {
+        u_int64_t creator_ID = 0;
+        std::string name;
 
-    std::string description;
+        std::string description;
 
-    //Additional information
-    std::string creator_name;
+        //Additional information
+        std::string creator_name;
 
-    room() = default;
-    room(std::vector<boost::mysql::field> room);
+        room() = default;
+        room(std::vector<boost::mysql::field> room);
 
-    auto to_json() const -> nlohmann::json;
-};
+        auto to_json() const -> nlohmann::json;
+    };
+}

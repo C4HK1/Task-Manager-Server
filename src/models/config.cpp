@@ -2,10 +2,10 @@
 #include <boost/mysql/row.hpp>
 #include <vector>
 
-config::config() : avatar("avatar"), configuration("config") {
+models::config::config() : avatar("avatar"), configuration("config") {
 }
 
-config::config(std::vector<boost::mysql::field> config) {
+models::config::config(std::vector<boost::mysql::field> config) {
     auto avatar = config.at(1).as_blob();
     auto configuration = config.at(2).as_blob();
 
@@ -13,7 +13,7 @@ config::config(std::vector<boost::mysql::field> config) {
     this->configuration = std::string(configuration.begin(), configuration.end());
 }
 
-auto config::to_json() const -> nlohmann::json {
+auto models::config::to_json() const -> nlohmann::json {
     return  {
         {"avatar", this->avatar},
         {"configuration", this->configuration},

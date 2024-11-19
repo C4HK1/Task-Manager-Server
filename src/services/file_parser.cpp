@@ -6,7 +6,7 @@
 
 #include "services/file_parser.h"
 
-auto file_parser::get_file_length(std::fstream &input_file) -> u_int64_t {
+auto services::file_parser::get_file_length(std::fstream &input_file) -> u_int64_t {
     input_file.seekg ({}, input_file.end);
     auto length = input_file.tellg();
     input_file.seekg ({}, input_file.beg);
@@ -14,7 +14,7 @@ auto file_parser::get_file_length(std::fstream &input_file) -> u_int64_t {
     return length;
 }
 
-auto file_parser::read_binary_file_to_string(const std::string& path, std::string &buffer) -> FILE_PARSER_EXECUTION_STATUS {
+auto services::file_parser::read_binary_file_to_string(const std::string& path, std::string &buffer) -> FILE_PARSER_EXECUTION_STATUS {
     try {
         std::fstream input_file{path, std::ifstream::binary};
 
@@ -41,7 +41,7 @@ auto file_parser::read_binary_file_to_string(const std::string& path, std::strin
     }
 }
 
-auto file_parser::read_text_file_to_string(const std::string& path, std::string &buffer) -> FILE_PARSER_EXECUTION_STATUS {
+auto services::file_parser::read_text_file_to_string(const std::string& path, std::string &buffer) -> FILE_PARSER_EXECUTION_STATUS {
     try {
         std::fstream input_file{path, std::ifstream::in};
 
@@ -68,7 +68,7 @@ auto file_parser::read_text_file_to_string(const std::string& path, std::string 
     }
 }
 
-auto file_parser::write_string_to_file(const std::string& path, std::string &buffer) -> FILE_PARSER_EXECUTION_STATUS {
+auto services::file_parser::write_string_to_file(const std::string& path, std::string &buffer) -> FILE_PARSER_EXECUTION_STATUS {
     try {
         std::fstream output_files{path, std::ofstream::binary};
 

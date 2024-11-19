@@ -2,14 +2,14 @@
 
 #include "models/invite.h"
 
-invite::invite(std::vector<boost::mysql::field> invite) {
+models::invite::invite(std::vector<boost::mysql::field> invite) {
     this->sender_ID = invite.at(0).get_uint64();
     this->receiver_ID = invite.at(1).get_uint64();
     this->room_creator_ID = invite.at(2).get_uint64();
     this->room_name = invite.at(3).get_string();       
 }
 
-auto invite::to_json() const -> nlohmann::json {
+auto models::invite::to_json() const -> nlohmann::json {
     return {
             {"sender ID", this->sender_ID},
             {"receiver ID", this->receiver_ID},

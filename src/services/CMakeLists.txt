@@ -6,6 +6,10 @@ set(CMAKE_CXX_STANDARD 17)
 find_package(Boost REQUIRED COMPONENTS system filesystem)
 find_package(cpp-jwt REQUIRED)
 
+find_package(PkgConfig REQUIRED)
+pkg_search_module(GLIB REQUIRED IMPORTED_TARGET glib-2.0)
+pkg_search_module(RDKAFKA REQUIRED IMPORTED_TARGET rdkafka)
+
 include_directories(${Boost_INCLUDE_DIRS})
 include_directories(../../include)
 
@@ -20,6 +24,7 @@ add_executable(DataBase
     ../models/config.cpp
     ../models/timer.cpp
     ../models/invite.cpp
+    ../models/status.cpp
 )
 
-target_link_libraries(DataBase ${Boost_LIBRARIES} cpp-jwt::cpp-jwt)
+target_link_libraries(DataBase ${Boost_LIBRARIES} cpp-jwt::cpp-jwt PkgConfig::GLIB PkgConfig::RDKAFKA)

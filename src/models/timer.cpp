@@ -3,18 +3,18 @@
 
 #include "models/timer.h"
 
-timer::timer() {
+models::timer::timer() {
     auto creation_time = std::chrono::system_clock::now();
     this->creation_time = this->convert_time_point_to_datetime(creation_time);
 }
 
-timer::timer(time_t time_to_live) : timer() {
+models::timer::timer(time_t time_to_live) : timer() {
     auto creation_time = std::chrono::system_clock::now();
     this->creation_time = this->convert_time_point_to_datetime(creation_time);
     this->deadline = this->convert_time_point_to_datetime(creation_time + std::chrono::minutes(time_to_live));
 }
 
-boost::mysql::datetime timer::convert_time_point_to_datetime(time_point time) {
+boost::mysql::datetime models::timer::convert_time_point_to_datetime(time_point time) {
     auto time_t = std::chrono::system_clock::to_time_t(time);
     auto time_tm = std::localtime(&time_t);
 
@@ -30,6 +30,6 @@ boost::mysql::datetime timer::convert_time_point_to_datetime(time_point time) {
     return datetime;
 }
 
-time_t timer::convert_datetime_to_time_t(boost::mysql::datetime datetime) {
+time_t models::timer::convert_datetime_to_time_t(boost::mysql::datetime datetime) {
     return datetime.valid() ? std::chrono::system_clock::to_time_t(datetime.as_time_point()) : std::chrono::system_clock::to_time_t({});
 }

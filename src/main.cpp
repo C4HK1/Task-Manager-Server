@@ -34,26 +34,21 @@ using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 // }
 
 // "Loop" forever accepting new connections.
-void
-http_server(tcp::acceptor& acceptor, tcp::socket& socket)
-{
-  acceptor.async_accept(socket,
-      [&](beast::error_code ec)
-      {
-          if(!ec)
-              std::make_shared<http_connection>(std::move(socket))->start();
-          http_server(acceptor, socket);
-      });
+void http_server(tcp::acceptor& acceptor, tcp::socket& socket) {
+    acceptor.async_accept(
+                    socket,
+                    [&](beast::error_code ec) {
+                               if(!ec)
+                                   std::make_shared<server::http_connection>(std::move(socket))->start();
+                               http_server(acceptor, socket);
+                           }
+                         );
 }
 
-int
-main(int argc, char* argv[])
-{
-    try
-    {
+int main(int argc, char* argv[]) {
+    try {
         // Check command line arguments.
-        if(argc != 3)
-        {
+        if(argc != 3) {
             std::cerr << "Usage: " << argv[0] << " <address> <port>\n";
             std::cerr << "  For IPv4, try:\n";
             std::cerr << "    receiver 0.0.0.0 80\n";
@@ -72,9 +67,7 @@ main(int argc, char* argv[])
         http_server(acceptor, socket);
 
         ioc.run();
-    }
-    catch(std::exception const& e)
-    {
+    } catch(std::exception const& e) {
         std::cerr << "Error: " << e.what() << std::endl;
         return EXIT_FAILURE;
     }
