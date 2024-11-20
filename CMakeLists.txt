@@ -5,8 +5,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(MYCOMPILE_FLAGS)
 
 find_package(Boost REQUIRED COMPONENTS system filesystem)
-find_package(cpp-jwt REQUIRED)
-# add_subdirectory(libs/cpp-jwt)
+# find_package(cpp-jwt REQUIRED)
+add_subdirectory(libs/cpp-jwt)
 
 find_package(PkgConfig REQUIRED)
 pkg_search_module(GLIB REQUIRED IMPORTED_TARGET glib-2.0)

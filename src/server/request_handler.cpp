@@ -1,5 +1,4 @@
 #include <iostream>
-#include <nlohmann/json_fwd.hpp>
 #include <string>
 #include <sys/types.h>
 
@@ -25,7 +24,7 @@ server::request_handler::request_handler(http::request<http::dynamic_body> *requ
               << std::endl;
 
     this->jwt = new services::JWT_manager;
-    models::status::JWT_status = jwt->validate_jwt_token(*this->request, this->request_data);
+    models::status::JWT_status = this->jwt->validate_jwt_token(*this->request, this->request_data);
     
     std::cout << "\nwith header data: '"
               << this->request_data

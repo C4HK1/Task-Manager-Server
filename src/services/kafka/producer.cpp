@@ -2,16 +2,13 @@
 #include <stdlib.h>
 #include <cstring>
 
-services::kafka::producer::producer() {
+services::kafka::producer::producer(const char *topic) : topic(topic) {
     char errstr[512];
 
     // Create client configuration
     conf = rd_kafka_conf_new();
     // User-specific properties that you must set
-    set_config(conf, "bootstrap.servers", "<BOOTSTRAP SERVERS>");
-
-    // Fixed properties
-    set_config(conf, "security.protocol", "SASL_SSL");
+    set_config(conf, HOST_KEY, HOST_VALUE);
 
     // Install a delivery-error callback.
     rd_kafka_conf_set_dr_msg_cb(conf, dr_msg_cb);
@@ -25,10 +22,6 @@ services::kafka::producer::producer() {
 
     // Configuration object is now owned, and freed, by the rd_kafka_t instance.
     conf = NULL;
-
-    // Produce data by selecting random values from these lists.
-    int message_count = 10;
-    topic = "purchases";
 }
 
 services::kafka::producer::~producer() {

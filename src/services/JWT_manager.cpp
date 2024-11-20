@@ -16,7 +16,7 @@ services::JWT_manager::JWT_manager(const std::string &public_key_path, const std
     models::status::file_parse_status = std::max(private_key_reading_status, public_key_reading_status);
 }
 
-auto services::JWT_manager::validate_jwt_token(http::request<http::dynamic_body> request, json_t &result_data) -> JWT_EXECUTION_STATUS {
+auto services::JWT_manager::validate_jwt_token(http::request<http::dynamic_body> request, nlohmann::json &result_data) -> JWT_EXECUTION_STATUS {
     for (auto &header : request.base()) {
         auto header_value = std::string(header.value());
         if (header.name() == http::field::authorization) {

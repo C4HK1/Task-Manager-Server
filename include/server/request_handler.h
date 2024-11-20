@@ -1,6 +1,5 @@
 #pragma once
 
-#include "jwt/jwt.hpp"
 #include <boost/asio/ip/basic_resolver.hpp>
 #include <boost/exception/exception.hpp>
 #include <boost/mysql/datetime.hpp>
@@ -23,7 +22,8 @@
 #include <stdlib.h>
 #include <sys/types.h>
 
-#include "services.h"
+#include "services/JWT_manager.h"
+#include "services/data_base_manager.h"
 
 namespace beast = boost::beast;         // from <boost/beast.hpp>
 namespace http = beast::http;           // from <boost/beast/http.hpp>
@@ -41,7 +41,7 @@ namespace server {
         http::request<http::dynamic_body> *request;
         http::response<http::dynamic_body> *response;
 
-        json_t request_data;
+        nlohmann::json request_data;
 
         services::JWT_manager *jwt;
         services::data_base_manager *data_base;
