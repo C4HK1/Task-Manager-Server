@@ -14,6 +14,8 @@
 #include "models/config.h" 
 #include "models/invite.h" 
 
+#include "kafka/producer.h"
+
 server::request_handler::request_handler(http::request<http::dynamic_body> *request, http::response<http::dynamic_body> *response) : 
         request(request),
         response(response) {
@@ -23,9 +25,15 @@ server::request_handler::request_handler(http::request<http::dynamic_body> *requ
               << beast::buffers_to_string((*this->request).body().data())
               << std::endl;
 
-    this->jwt = new services::JWT_manager;
-    models::status::JWT_status = this->jwt->validate_jwt_token(*this->request, this->request_data);
-    
+    for (auto &header : request->base()) {
+        auto header_value = std::string(header.value());
+        if (header.name() == http::field::authorization) {
+            this->JWT = header_value;
+            this->JWT_manager = new services::JWT_manager;
+            models::status::JWT_status = this->JWT_manager->validate_jwt_token(header_value, this->request_data);
+        }
+    }
+
     std::cout << "\nwith header data: '"
               << this->request_data
               << "'\n";
@@ -53,7 +61,7 @@ server::request_handler::request_handler(http::request<http::dynamic_body> *requ
 
 server::request_handler::~request_handler() {
     delete this->data_base;
-    delete this->jwt;
+    delete this->JWT_manager;
 }
 
 auto server::request_handler::get_request_handler() -> void {
@@ -71,7 +79,7 @@ auto server::request_handler::get_request_handler() -> void {
 
             std::string jwt;
 
-            models::status::JWT_status = this->jwt->create_jwt(profile.ID, profile.login, profile.password, jwt);
+            models::status::JWT_status = this->JWT_manager->create_jwt(profile.ID, profile.login, profile.password, jwt);
 
             if (models::status::data_base_status)
                 jwt = "";
@@ -93,6 +101,7 @@ auto server::request_handler::get_request_handler() -> void {
         models::status::data_base_status = this->data_base->profile_authenticate(profile);
         
         response.push_back(nlohmann::json::object_t::value_type("status", models::status::get_status()));
+        response.push_back(nlohmann::json::object_t::value_type("profile", profile.to_json()));
     
         std::cout << "profile authentication response " << response << std::endl;
     } else if (!(*this->request).target().find("/GetProfile/")) {
@@ -308,7 +317,7 @@ auto server::request_handler::post_request_handler() -> void {
         
         std::string jwt;
 
-        models::status::JWT_status = this->jwt->create_jwt(profile.ID, profile.login, profile.password, jwt);
+        models::status::JWT_status = this->JWT_manager->create_jwt(profile.ID, profile.login, profile.password, jwt);
 
         if (models::status::data_base_status)
             jwt = "";
@@ -430,6 +439,21 @@ auto server::request_handler::post_request_handler() -> void {
         response.push_back(nlohmann::json::object_t::value_type("status", models::status::get_status()));
         response.push_back(nlohmann::json::object_t::value_type("invite", invite.to_json()));
         
+        kafka::producer producer_;
+
+        if (this->JWT.size()) {
+            models::profile receiver;
+            models::status::data_base_status = this->data_base->get_profile_by_ID(receiver_ID, receiver);
+            
+            if (!models::status::data_base_status) {
+                nlohmann::json topic;
+                topic.push_back(nlohmann::json::object_t::value_type("ID", receiver.ID));
+                topic.push_back(nlohmann::json::object_t::value_type("login", receiver.login));
+                topic.push_back(nlohmann::json::object_t::value_type("password", receiver.password));
+                producer_.send_message(((std::string) topic).c_str(), "getting invite", ((std::string) room_name).c_str());
+            }
+        }
+
         std::cout << "creating invite response " << response << std::endl;
     } else if (!(*request).target().find("/AcceptInvite/")) {
         auto room_creator_ID = this->request_data.at("room creator ID");

@@ -16,24 +16,19 @@ services::JWT_manager::JWT_manager(const std::string &public_key_path, const std
     models::status::file_parse_status = std::max(private_key_reading_status, public_key_reading_status);
 }
 
-auto services::JWT_manager::validate_jwt_token(http::request<http::dynamic_body> request, nlohmann::json &result_data) -> JWT_EXECUTION_STATUS {
-    for (auto &header : request.base()) {
-        auto header_value = std::string(header.value());
-        if (header.name() == http::field::authorization) {
-            using namespace jwt::params;
-            try {
-                auto data = jwt::decode(header_value, algorithms({"RS256"}), verify(false), secret(public_key_)).payload().create_json_obj();
-                
-                if (std::atoi(std::string(data.at("destroy_time")).c_str()) <= time(NULL))
-                    return JWT_TIME_LIMIT_EXECEEDED;
-                
-                result_data = data;
+auto services::JWT_manager::validate_jwt_token(const std::string &header_value, nlohmann::json &result_data) -> JWT_EXECUTION_STATUS {
+    using namespace jwt::params;
+    try {
+        auto data = jwt::decode(header_value, algorithms({"RS256"}), verify(false), secret(public_key_)).payload().create_json_obj();
+        
+        if (std::atoi(std::string(data.at("destroy_time")).c_str()) <= time(NULL))
+            return JWT_TIME_LIMIT_EXECEEDED;
+        
+        result_data = data;
 
-                return JWT_COMPLETED_SUCCESSFULY;
-            } catch(std::exception exception) {
-                return JWT_DECODING_FILED;
-            }
-        }
+        return JWT_COMPLETED_SUCCESSFULY;
+    } catch(std::exception exception) {
+        return JWT_DECODING_FILED;
     }
 
     return JWT_NO_TOKEN_HEADER;

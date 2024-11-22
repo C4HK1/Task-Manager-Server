@@ -29,7 +29,11 @@ set(SERVICES_SOURCES
     src/services/JWT_manager.cpp
     src/services/file_parser.cpp
     src/services/data_base_manager.cpp  
-    src/services/kafka/producer.cpp
+)
+
+set(KAFKA_SOURCES 
+    src/kafka/producer.cpp
+    src/kafka/common.cpp
 )
 
 set(SERVER_SOURCES
@@ -42,6 +46,7 @@ add_executable(RestfulApi
     ${MODELS_SOURCES}
     ${SERVICES_SOURCES}
     ${SERVER_SOURCES}
+    ${KAFKA_SOURCES}
 )
 
 target_link_libraries(RestfulApi ${MYCOMPILE_FLAGS} ${Boost_LIBRARIES} cpp-jwt::cpp-jwt PkgConfig::GLIB PkgConfig::RDKAFKA)
