@@ -12,6 +12,7 @@ namespace kafka {
         producer();
         ~producer();
 
+        int create_topic(const char *topic);
         int send_message(
                 const char *topic, 
                 const char *key, 

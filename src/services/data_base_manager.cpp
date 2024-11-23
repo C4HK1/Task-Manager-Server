@@ -3,6 +3,7 @@
 #include <boost/mysql/rows_view.hpp>
 #include <cstring>
 #include <ctime>
+#include <functional>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -16,6 +17,7 @@
 #include "models/invite.h" 
 
 #include "services/data_base_manager.h"
+#include <services/JWT_manager.h>
 
 using namespace boost::mysql;
 
@@ -179,9 +181,26 @@ auto services::data_base_manager::create_configs_table() -> void {
         conn.query(
         R"%(
             CREATE TABLE configs (
-                profile_ID BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT NOT NULL UNIQUE,
+                profile_ID BIGINT UNSIGNED NOT NULL,
                 avatar VARBINARY(1024),
                 configuration VARBINARY(4096),
+
+                FOREIGN KEY (profile_ID) REFERENCES profiles(ID) ON DELETE CASCADE
+            )
+        )%", result);
+    }  catch (boost::mysql::error_with_diagnostics &exception) {
+        std::cout << exception.get_diagnostics().server_message() << std::endl;
+        std::cout << exception.get_diagnostics().client_message() << std::endl;
+    }
+}
+
+auto services::data_base_manager::create_topics_table() -> void {
+    try {
+        conn.query(
+        R"%(
+            CREATE TABLE topics (
+                profile_ID BIGINT UNSIGNED NOT NULL,
+                topic VARCHAR(128) NOT NULL,
 
                 FOREIGN KEY (profile_ID) REFERENCES profiles(ID) ON DELETE CASCADE
             )
@@ -369,8 +388,19 @@ auto services::data_base_manager::create_profile(
 
         conn.execute(request.str(), result);
 
-        auto status = this->get_profile_by_ID(profile_ID, *this->manager);
+        request.str(std::string());
 
+        request << "INSERT INTO topics (profile_ID, topic) VALUES ("
+                << profile_ID
+                << ", '"
+                << std::hash<std::string>{}(std::to_string(profile_ID))
+                << "')";
+
+        std::cout << request.str() << std::endl;
+
+        conn.execute(request.str(), result);
+
+        auto status = this->get_profile_by_ID(profile_ID, *this->manager);
         profile = *this->manager;
 
         return status;
@@ -478,7 +508,40 @@ auto services::data_base_manager::get_profile_config(models::config &config) -> 
         return DATA_BASE_FAILED;
     }
 }
+
+auto services::data_base_manager::get_topic_by_profile_ID(const u_int64_t ID) -> std::string {
+    try {
+        models::profile profile;
+
+        auto status = get_profile_by_ID(ID, profile);
+
+        if (status)
+            return "";
         
+        std::stringstream request;
+
+        request << "SELECT * FROM topics WHERE profile_ID = "
+                << profile.ID;
+
+        std::cout << request.str() << std::endl;
+
+        conn.execute(request.str(), result);
+
+        auto topics = this->convert_data_base_response_to_matrix(result.rows());
+
+        if (topics.size()) {
+            return topics.at(0).at(1).get_string();
+        }
+
+        return "";
+    } catch (boost::mysql::error_with_diagnostics &exception) {
+        std::cout << exception.get_diagnostics().server_message() << std::endl;
+        std::cout << exception.get_diagnostics().client_message() << std::endl;
+
+        return "";
+    }
+}
+  
 auto services::data_base_manager::get_profile_assigned_tasks(std::vector<models::task> &tasks) -> DATA_BASE_EXECUTION_STATUS {
     try {
         models::profile profile;
@@ -709,10 +772,10 @@ auto services::data_base_manager::loggin_profile(const std::string &login, const
         conn.execute(request.str(), result);
 
         auto profiles = this->convert_data_base_response_to_matrix(result.rows());
-
-        for (auto profile : profiles) {
-            *this->manager = profile;
-            profile = profile;
+        
+        for (auto curr_profile : profiles) {
+            *this->manager = curr_profile;
+            profile = *this->manager;
 
             return DATA_BASE_COMPLETED_SUCCESSFULY;
         }
@@ -727,7 +790,12 @@ auto services::data_base_manager::loggin_profile(const std::string &login, const
 }
 
 auto services::data_base_manager::profile_authenticate(models::profile &profile) -> DATA_BASE_EXECUTION_STATUS {
-    return this->loggin_profile(this->manager->login, this->manager->password, profile);
+    profile = *this->manager;
+    
+    if (this->manager->ID)
+        return DATA_BASE_COMPLETED_SUCCESSFULY;
+    else
+        return DATA_BASE_THERE_IS_NO_PROFILE_WITH_SUCH_ID_LOGIN_AND_PASSWORD;
 }
 
 auto services::data_base_manager::get_profiles_with_substr_in_name(
@@ -2087,6 +2155,18 @@ auto services::data_base_manager::update_tables() -> void {
         conn.query(request.str(), result);
     } catch (boost::mysql::error_with_diagnostics &exception) {
         this->create_configs_table();
+    }
+
+    try {
+        std::stringstream request;
+
+        request << "SELECT * FROM topics";
+
+        std::cout << request.str() << std::endl;
+
+        conn.query(request.str(), result);
+    } catch (boost::mysql::error_with_diagnostics &exception) {
+        this->create_topics_table();
     }
 
     try {

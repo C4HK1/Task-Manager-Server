@@ -3,6 +3,7 @@
 #include <boost/mysql/tcp_ssl.hpp>
 #include <sys/types.h>
 #include "models.h"
+#include "models/profile.h"
 
 namespace services {
     enum DATA_BASE_EXECUTION_STATUS : u_int64_t {
@@ -16,6 +17,7 @@ namespace services {
         DATA_BASE_THERE_IS_NO_PROFILE_WITH_SUCH_NAME,
         DATA_BASE_THERE_IS_NO_PROFILE_WITH_SUCH_ID,
         DATA_BASE_THERE_IS_NO_PROFILE_WITH_SUCH_LOGIN_AND_PASSWORD,
+        DATA_BASE_THERE_IS_NO_PROFILE_WITH_SUCH_ID_LOGIN_AND_PASSWORD,
         DATA_BASE_THERE_IS_NO_CONFIG_WITH_SUCH_PROFILE_ID,
         DATA_BASE_UNKNOWN_PROFILE,
 
@@ -71,6 +73,7 @@ namespace services {
         auto create_profile_room_table() -> void;
         auto create_tasks_table() -> void;
         auto create_configs_table() -> void;
+        auto create_topics_table() -> void;
         auto create_assignees_table() -> void;
         auto create_reviewers_table() -> void;
         auto create_invites_table() -> void;
@@ -117,6 +120,8 @@ namespace services {
 
         auto get_profile_config(models::config &config) -> DATA_BASE_EXECUTION_STATUS;
                 
+        auto get_topic_by_profile_ID(const u_int64_t ID) -> std::string;
+
         auto get_profile_assigned_tasks(std::vector<models::task> &tasks) -> DATA_BASE_EXECUTION_STATUS;
 
         auto get_profile_reviewed_tasks(std::vector<models::task> &tasks) -> DATA_BASE_EXECUTION_STATUS;

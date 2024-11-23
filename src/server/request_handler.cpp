@@ -25,11 +25,12 @@ server::request_handler::request_handler(http::request<http::dynamic_body> *requ
               << beast::buffers_to_string((*this->request).body().data())
               << std::endl;
 
+    this->JWT_manager = new services::JWT_manager;
+
     for (auto &header : request->base()) {
         auto header_value = std::string(header.value());
         if (header.name() == http::field::authorization) {
             this->JWT = header_value;
-            this->JWT_manager = new services::JWT_manager;
             models::status::JWT_status = this->JWT_manager->validate_jwt_token(header_value, this->request_data);
         }
     }
@@ -77,18 +78,17 @@ auto server::request_handler::get_request_handler() -> void {
 
             models::status::data_base_status = this->data_base->loggin_profile(login, password, profile);
 
-            std::string jwt;
+            std::string result_JWT;
 
-            models::status::JWT_status = this->JWT_manager->create_jwt(profile.ID, profile.login, profile.password, jwt);
+            models::status::JWT_status = this->JWT_manager->create_jwt(profile.ID, profile.login, profile.password, result_JWT);
 
             if (models::status::data_base_status)
-                jwt = "";
+                result_JWT = "";
         
             response.push_back(nlohmann::json::object_t::value_type("status", models::status::get_status()));
-            response.push_back(nlohmann::json::object_t::value_type("JWT", jwt));
-        } catch(boost::mysql::error_with_diagnostics &exception) {
-            std::cout << exception.get_diagnostics().server_message() << std::endl;
-            std::cout << exception.get_diagnostics().client_message() << std::endl;
+            response.push_back(nlohmann::json::object_t::value_type("JWT", result_JWT));
+        } catch(nlohmann::json::exception &exception) {
+            std::cout << exception.what() << std::endl;
             
             models::status::request_status = REQUEST_INVALID_REQUEST_BODY_DATA;
             response.push_back(nlohmann::json::object_t::value_type("status", models::status::get_status()));
@@ -101,8 +101,11 @@ auto server::request_handler::get_request_handler() -> void {
         models::status::data_base_status = this->data_base->profile_authenticate(profile);
         
         response.push_back(nlohmann::json::object_t::value_type("status", models::status::get_status()));
-        response.push_back(nlohmann::json::object_t::value_type("profile", profile.to_json()));
-    
+        
+        std::string topic = this->data_base->get_topic_by_profile_ID(profile.ID);
+
+        response.push_back(nlohmann::json::object_t::value_type("topic", topic));
+
         std::cout << "profile authentication response " << response << std::endl;
     } else if (!(*this->request).target().find("/GetProfile/")) {
         response.push_back(nlohmann::json::object_t::value_type("status", models::status::get_status()));
@@ -324,7 +327,12 @@ auto server::request_handler::post_request_handler() -> void {
 
         response.push_back(nlohmann::json::object_t::value_type("status", models::status::get_status()));
         response.push_back(nlohmann::json::object_t::value_type("JWT", jwt));
-    
+
+        std::string topic = this->data_base->get_topic_by_profile_ID(profile.ID);
+
+        kafka::producer producer;
+        producer.create_topic(topic.c_str());
+
         std::cout << "profile creation response " << response << std::endl;
     } else if (!(*request).target().find("/CreateRoom/")) {
         auto room_name = this->request_data.at("room name");
@@ -439,19 +447,15 @@ auto server::request_handler::post_request_handler() -> void {
         response.push_back(nlohmann::json::object_t::value_type("status", models::status::get_status()));
         response.push_back(nlohmann::json::object_t::value_type("invite", invite.to_json()));
         
-        kafka::producer producer_;
-
-        if (this->JWT.size()) {
-            models::profile receiver;
-            models::status::data_base_status = this->data_base->get_profile_by_ID(receiver_ID, receiver);
+        models::profile receiver;
+        models::status::data_base_status = this->data_base->get_profile_by_ID(receiver_ID, receiver);
             
-            if (!models::status::data_base_status) {
-                nlohmann::json topic;
-                topic.push_back(nlohmann::json::object_t::value_type("ID", receiver.ID));
-                topic.push_back(nlohmann::json::object_t::value_type("login", receiver.login));
-                topic.push_back(nlohmann::json::object_t::value_type("password", receiver.password));
-                producer_.send_message(((std::string) topic).c_str(), "getting invite", ((std::string) room_name).c_str());
-            }
+        if (!models::status::get_status()) {
+            kafka::producer producer;
+
+            std::string topic = this->data_base->get_topic_by_profile_ID(receiver.ID); 
+            
+            producer.send_message(topic.c_str(), "getting invite", ((std::string) room_name).c_str());
         }
 
         std::cout << "creating invite response " << response << std::endl;

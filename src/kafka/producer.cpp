@@ -7,6 +7,7 @@
  * failed delivery (after retries).
  */
 
+//Object part
 kafka::producer::producer() {
     char errstr[512];
 
@@ -22,12 +23,43 @@ kafka::producer::producer() {
     // Create the Producer instance.
     producer_ = rd_kafka_new(RD_KAFKA_PRODUCER, conf, errstr, sizeof(errstr));
     if (!producer_) {
-        g_error("Failed to create new producer_: %s", errstr);
+        g_error("Failed to create new producer: %s", errstr);
         return;
     }
 
     // Configuration object is now owned, and freed, by the rd_kafka_t instance.
     conf = NULL;
+
+    printf("Producer created\n");
+}
+
+kafka::producer::~producer() {
+    rd_kafka_destroy(producer_);
+
+    printf("Producer deleted\n");
+}
+
+
+//Methods part
+int kafka::producer::create_topic(const char *topic) {
+    rd_kafka_resp_err_t err;
+
+    err = rd_kafka_producev(producer_,
+                            RD_KAFKA_V_TOPIC(topic),
+                            RD_KAFKA_V_MSGFLAGS(RD_KAFKA_MSG_F_COPY),
+                            RD_KAFKA_V_OPAQUE(NULL),
+                            RD_KAFKA_V_END);
+
+    if (err) {
+        g_error("Failed to produce to topic %s: %s", topic, rd_kafka_err2str(err));
+        return 1;
+    } else {
+        g_message("Created topic: %s", topic);
+    }
+
+    rd_kafka_poll(producer_, 0);
+
+    return 0;
 }
 
 int kafka::producer::send_message(
@@ -56,12 +88,8 @@ int kafka::producer::send_message(
 
     rd_kafka_poll(producer_, 0);
 
-    return 0;
-}
-
-kafka::producer::~producer() {
     // Block until the messages are all sent.
-    g_message("Flushing final messages..");
+    g_message("Flushing message..");
 
     rd_kafka_flush(producer_, 10 * 1000);
 
@@ -71,5 +99,5 @@ kafka::producer::~producer() {
 
     g_message("event were produced to topic.");
 
-    rd_kafka_destroy(producer_);
+    return 0;
 }

@@ -45,8 +45,8 @@ namespace server {
         
         std::string JWT;
         
-        services::JWT_manager *JWT_manager;
-        services::data_base_manager *data_base;
+        services::JWT_manager *JWT_manager = nullptr;
+        services::data_base_manager *data_base = nullptr;
     public:
         request_handler(http::request<http::dynamic_body> *request, http::response<http::dynamic_body> *response);
         ~request_handler();
