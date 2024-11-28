@@ -1248,7 +1248,7 @@ auto data_base_manager::get_task_assignees(
 
         std::stringstream request;
 
-        request << "SELECT profiles.* FROM assignees INNER JOIN profiles ON assignees.profile_ID = profiles.ID AND assignees.room_creator_ID = "
+        request << "SELECT profiles.* FROM assignees INNER JOIN profiles ON assignees.assignee_ID = profiles.ID AND assignees.room_creator_ID = "
                 << task.room_creator_ID
                 << " AND assignees.room_name = '"
                 << task.room_name
@@ -1292,7 +1292,7 @@ auto data_base_manager::get_task_reviewers(
 
         std::stringstream request;
 
-        request << "SELECT profiles.* FROM reviewers INNER JOIN profiles ON reviewers.profile_ID = profiles.ID AND reviewers.room_creator_ID = "
+        request << "SELECT profiles.* FROM reviewers INNER JOIN profiles ON reviewers.reviewer_ID = profiles.ID AND reviewers.room_creator_ID = "
                 << task.room_creator_ID
                 << " AND reviewers.room_name = '"
                 << task.room_name

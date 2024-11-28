@@ -8,11 +8,11 @@ services:
       - 'MYSQL_USER=myuser'
     ports:
       - '3306:3306'
-  boost-server:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    environment:
-      - 'DATA_BASE_HOST=mysql'
-    ports:
-      - '8080:8080'
+#  boost-server:
+#     build:
+#       context: .
+#       dockerfile: Dockerfile
+#     environment:
+#       - 'DATA_BASE_HOST=mysql'
+#     ports:
+#       - '8080:8080'

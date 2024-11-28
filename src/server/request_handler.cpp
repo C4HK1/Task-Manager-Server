@@ -250,7 +250,7 @@ auto request_handler::get_request_handler() -> void {
         std::vector<profile> result_profiles;
 
         server_status::data_base_status = this->data_base->get_room_profiles(room_creator_ID, room_name, result_profiles);
-        
+
         response.push_back(nlohmann::json::object_t::value_type("status", server_status::get_status()));
 
         nlohmann::json profiles;
@@ -261,6 +261,44 @@ auto request_handler::get_request_handler() -> void {
         response.push_back(nlohmann::json::object_t::value_type("profiles", profiles));
 
         std::cout << "get room profiles response " << response << std::endl;
+    } else if (!(*this->request).target().find("/GetTaskAssignees/")) {
+        auto room_creator_ID = this->request_data.at("room creator ID");
+        auto room_name = this->request_data.at("room name");
+        auto task_name = this->request_data.at("task name");
+        
+        std::vector<profile> result_profiles;
+
+        server_status::data_base_status = this->data_base->get_task_assignees(room_creator_ID, room_name, task_name, result_profiles);
+        
+        response.push_back(nlohmann::json::object_t::value_type("status", server_status::get_status()));
+
+        nlohmann::json profiles;
+        for (auto profile : result_profiles) {
+            profiles.push_back(profile.to_json());
+        }
+
+        response.push_back(nlohmann::json::object_t::value_type("profiles", profiles));
+
+        std::cout << "get task assignees " << response << std::endl;
+    } else if (!(*this->request).target().find("/GetTaskReviewers/")) {
+        auto room_creator_ID = this->request_data.at("room creator ID");
+        auto room_name = this->request_data.at("room name");
+        auto task_name = this->request_data.at("task name");
+        
+        std::vector<profile> result_profiles;
+
+        server_status::data_base_status = this->data_base->get_task_reviewers(room_creator_ID, room_name, task_name, result_profiles);
+        
+        response.push_back(nlohmann::json::object_t::value_type("status", server_status::get_status()));
+
+        nlohmann::json profiles;
+        for (auto profile : result_profiles) {
+            profiles.push_back(profile.to_json());
+        }
+
+        response.push_back(nlohmann::json::object_t::value_type("profiles", profiles));
+
+        std::cout << "get task reviewers " << response << std::endl;
     } else {
         (*this->response).result(http::status::not_found);
         (*this->response).set(http::field::content_type, "text/plain");
