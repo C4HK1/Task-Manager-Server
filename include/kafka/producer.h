@@ -1,21 +1,13 @@
 #pragma once
 
-#include <glib.h>
-#include <librdkafka/rdkafka.h>
+#include <librdkafka/rdkafkacpp.h>
+#include <iostream>
 
 namespace kafka {
-    class producer {
-        rd_kafka_t *producer_;
-        rd_kafka_conf_t *conf;
-    public:
-        //Object part
-        producer();
-        ~producer();
+    constexpr const char *brokers{"localhost:9092"};
 
-        int create_topic(const char *topic);
-        int send_message(
-                const char *topic, 
-                const char *key, 
-                const char *value);
+    class producer {
+    public:
+        static void send_message(const std::string &topic_name, const std::string &key, const std::string &value);
     };
 }

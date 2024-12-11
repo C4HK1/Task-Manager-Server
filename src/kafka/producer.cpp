@@ -1,103 +1,44 @@
 #include "kafka/producer.h"
-#include "kafka/common.h"
-#include <cstdio>
 
-/* Optional per-message delivery callback (triggered by poll() or flush())
- * when a message has been successfully delivered or permanently
- * failed delivery (after retries).
- */
+#include <librdkafka/rdkafkacpp.h>
+#include <iostream>
+#include <string>
 
-//Object part
-kafka::producer::producer() {
-    char errstr[512];
+void kafka::producer::send_message(const std::string &topic_name, const std::string &key, const std::string &value) {
+    std::string errstr;
 
-    // Create client configuration
-    conf = rd_kafka_conf_new();
+    RdKafka::Conf *conf = RdKafka::Conf::create(RdKafka::Conf::CONF_GLOBAL);
+    conf->set("bootstrap.servers", brokers, errstr);
 
-    // User-specific properties that you must set
-    kafka::common::set_config(conf, "bootstrap.servers", KAFKA_BROKERS);
-
-    // Install a delivery-error callback.
-    rd_kafka_conf_set_dr_msg_cb(conf, kafka::common::dr_msg_cb);
-
-    // Create the Producer instance.
-    producer_ = rd_kafka_new(RD_KAFKA_PRODUCER, conf, errstr, sizeof(errstr));
-    if (!producer_) {
-        g_error("Failed to create new producer: %s", errstr);
+    RdKafka::Producer *producer = RdKafka::Producer::create(conf, errstr);
+    if (!producer) {
+        std::cerr << "Failed to create producer: " << errstr << std::endl;
+        delete conf;
         return;
     }
 
-    // Configuration object is now owned, and freed, by the rd_kafka_t instance.
-    conf = NULL;
-
-    printf("Producer created\n");
-}
-
-kafka::producer::~producer() {
-    rd_kafka_destroy(producer_);
-
-    printf("Producer deleted\n");
-}
-
-
-//Methods part
-int kafka::producer::create_topic(const char *topic) {
-    rd_kafka_resp_err_t err;
-
-    err = rd_kafka_producev(producer_,
-                            RD_KAFKA_V_TOPIC(topic),
-                            RD_KAFKA_V_MSGFLAGS(RD_KAFKA_MSG_F_COPY),
-                            RD_KAFKA_V_OPAQUE(NULL),
-                            RD_KAFKA_V_END);
-
-    if (err) {
-        g_error("Failed to produce to topic %s: %s", topic, rd_kafka_err2str(err));
-        return 1;
-    } else {
-        g_message("Created topic: %s", topic);
+    RdKafka::Topic *topic = RdKafka::Topic::create(producer, topic_name, nullptr, errstr);
+    if (!topic) {
+        std::cerr << "Failed to create topic: " << errstr << std::endl;
+        delete producer;
+        delete conf;
+        return;
     }
 
-    rd_kafka_poll(producer_, 0);
+    // Отправка сообщения
+    RdKafka::ErrorCode err = producer->produce(
+        topic, RdKafka::Topic::OFFSET_END, RdKafka::Producer::RK_MSG_COPY,
+        const_cast<char *>(value.c_str()), value.size(), &key, nullptr);
 
-    return 0;
-}
-
-int kafka::producer::send_message(
-        const char *topic, 
-        const char *key, 
-        const char *value) {
-    size_t key_len = strlen(key);
-    size_t value_len = strlen(value);
-
-    rd_kafka_resp_err_t err;
-
-    err = rd_kafka_producev(producer_,
-                            RD_KAFKA_V_TOPIC(topic),
-                            RD_KAFKA_V_MSGFLAGS(RD_KAFKA_MSG_F_COPY),
-                            RD_KAFKA_V_KEY((void*)key, key_len),
-                            RD_KAFKA_V_VALUE((void*)value, value_len),
-                            RD_KAFKA_V_OPAQUE(NULL),
-                            RD_KAFKA_V_END);
-
-    if (err) {
-        g_error("Failed to produce to topic %s: %s", topic, rd_kafka_err2str(err));
-        return 1;
-    } else {
-        g_message("Produced event to topic %s: key = %12s value = %12s", topic, key, value);
+    if (err != RdKafka::ERR_NO_ERROR) {
+        std::cerr << "Error while producing message: " << RdKafka::err2str(err) << std::endl;
     }
 
-    rd_kafka_poll(producer_, 0);
+    while (producer->flush(1000));
 
-    // Block until the messages are all sent.
-    g_message("Flushing message..");
+    std::cout << "message: " << key << " " << value << " sended on topic: " << topic << std::endl; 
 
-    rd_kafka_flush(producer_, 10 * 1000);
-
-    if (rd_kafka_outq_len(producer_) > 0) {
-        g_error("%d message(s) were not delivered", rd_kafka_outq_len(producer_));
-    }
-
-    g_message("event were produced to topic.");
-
-    return 0;
+    delete topic;
+    delete producer;
+    delete conf;
 }

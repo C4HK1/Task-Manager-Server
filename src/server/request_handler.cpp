@@ -330,9 +330,6 @@ auto server::request_handler::post_request_handler() -> void {
 
         std::string topic = this->data_base->get_topic_by_profile_ID(profile.ID);
 
-        kafka::producer producer;
-        producer.create_topic(topic.c_str());
-
         std::cout << "profile creation response " << response << std::endl;
     } else if (!(*request).target().find("/CreateRoom/")) {
         auto room_name = this->request_data.at("room name");
@@ -444,18 +441,22 @@ auto server::request_handler::post_request_handler() -> void {
 
         models::status::data_base_status = this->data_base->create_invite(receiver_ID, room_creator_ID, room_name, invite);
 
-        response.push_back(nlohmann::json::object_t::value_type("status", models::status::get_status()));
+        auto status = models::status::get_status();
+
+        response.push_back(nlohmann::json::object_t::value_type("status", status));
         response.push_back(nlohmann::json::object_t::value_type("invite", invite.to_json()));
-        
+
         models::profile receiver;
         models::status::data_base_status = this->data_base->get_profile_by_ID(receiver_ID, receiver);
             
-        if (!models::status::get_status()) {
-            kafka::producer producer;
-
+        if (!status) {
             std::string topic = this->data_base->get_topic_by_profile_ID(receiver.ID); 
             
-            producer.send_message(topic.c_str(), "getting invite", ((std::string) room_name).c_str());
+            nlohmann::json message;
+            message.push_back(nlohmann::json::object_t::value_type("invite sender name", this->data_base->get_manager().name));
+            message.push_back(nlohmann::json::object_t::value_type("room name", room_name));
+
+            kafka::producer::send_message(topic, "getting invite", message.dump());
         }
 
         std::cout << "creating invite response " << response << std::endl;

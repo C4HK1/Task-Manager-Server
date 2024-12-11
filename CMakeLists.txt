@@ -8,9 +8,11 @@ find_package(Boost REQUIRED COMPONENTS system filesystem)
 # find_package(cpp-jwt REQUIRED)
 add_subdirectory(libs/cpp-jwt)
 
+find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
 find_package(PkgConfig REQUIRED)
+
 pkg_search_module(GLIB REQUIRED IMPORTED_TARGET glib-2.0)
-pkg_search_module(RDKAFKA REQUIRED IMPORTED_TARGET rdkafka)
+pkg_search_module(RDKAFKA++ REQUIRED IMPORTED_TARGET rdkafka++)
 
 include_directories(${Boost_INCLUDE_DIRS})
 include_directories(include)
@@ -33,7 +35,6 @@ set(SERVICES_SOURCES
 
 set(KAFKA_SOURCES 
     src/kafka/producer.cpp
-    src/kafka/common.cpp
 )
 
 set(SERVER_SOURCES
@@ -49,4 +50,5 @@ add_executable(RestfulApi
     ${KAFKA_SOURCES}
 )
 
-target_link_libraries(RestfulApi ${MYCOMPILE_FLAGS} ${Boost_LIBRARIES} cpp-jwt::cpp-jwt PkgConfig::GLIB PkgConfig::RDKAFKA)
+target_include_directories(RestfulApi PUBLIC ${Python3_INCLUDE_DIRS})
+target_link_libraries(RestfulApi ${MYCOMPILE_FLAGS} ${Boost_LIBRARIES} cpp-jwt::cpp-jwt PkgConfig::GLIB PkgConfig::RDKAFKA++ ${Python3_LIBRARIES})
